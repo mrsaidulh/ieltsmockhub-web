@@ -1,0 +1,6 @@
+{
+  "name": "IELTS Mock Hub",
+  "description": "An elegant, highly accessible IELTS practice and mock testing platform featuring comprehensive skill tracking, real-time analytics, and realistic practice exams.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
