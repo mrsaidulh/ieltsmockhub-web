@@ -10,11 +10,12 @@ import DashboardOverview from './components/DashboardOverview';
 import TestList from './components/TestList';
 import AnalyticsView from './components/AnalyticsView';
 import TestStartModal from './components/TestStartModal';
+import VocabularyView from './components/VocabularyView';
 import { 
   INITIAL_USER_PROGRESS, MOCK_TESTS, 
   MOCK_ATTEMPT_HISTORY, MOCK_BAND_PROGRESS 
 } from './data/mockData';
-import { IELTSTest, TestCategory, TestType, AttemptHistory, BandProgressPoint } from './types';
+import { IELTSTest, TestCategory, TestType, AttemptHistory, BandProgressPoint, VocabularyWord, StudentLead } from './types';
 
 export default function App() {
   // Global States
@@ -22,19 +23,97 @@ export default function App() {
   const [recentAttempts, setRecentAttempts] = useState<AttemptHistory[]>(MOCK_ATTEMPT_HISTORY);
   const [progressData, setProgressData] = useState<BandProgressPoint[]>(MOCK_BAND_PROGRESS);
   const [activeCategory, setActiveCategory] = useState<TestCategory>('all');
-  const [activeType, setActiveType] = useState<TestType | 'All' | 'Analytics'>('All');
+  const [activeType, setActiveType] = useState<TestType | 'All' | 'Analytics' | 'Vocabulary'>('All');
   const [streakIncremented, setStreakIncremented] = useState(false);
   const [selectedTest, setSelectedTest] = useState<IELTSTest | null>(null);
   const [completedTestIds, setCompletedTestIds] = useState<string[]>(['r1', 'l1']);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Student Lead Session State
+  const [currentUser, setCurrentUser] = useState<StudentLead | null>(() => {
+    const saved = localStorage.getItem('ielts_student_user');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { }
+    }
+    return null;
+  });
+
+  // Vocabulary Bank State
+  const [vocabularyList, setVocabularyList] = useState<VocabularyWord[]>(() => {
+    const saved = localStorage.getItem('ielts_vocabulary');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { }
+    }
+    return [
+      {
+        id: 'vocab_1',
+        word: 'Symbiotic',
+        definition: 'Denoting a mutually beneficial relationship between different organisms.',
+        exampleSentence: 'disrupt the fragile symbiotic algae, leading to widespread bleaching events.',
+        sourceTestTitle: 'Marine Ecosystem Dynamics',
+        dateAdded: '2026-07-19',
+        mastered: false,
+      },
+      {
+        id: 'vocab_2',
+        word: 'Commencement',
+        definition: 'The beginning or start of something.',
+        exampleSentence: 'The preferred date for membership commencement is the 14th of October.',
+        sourceTestTitle: 'Audio Registration Conversation',
+        dateAdded: '2026-07-19',
+        mastered: false,
+      },
+      {
+        id: 'vocab_3',
+        word: 'Empower',
+        definition: 'Make stronger and more confident, especially in controlling their life and claiming their rights.',
+        exampleSentence: 'Discuss whether Generative AI technologies will ultimately empower or extinguish human creative professions.',
+        sourceTestTitle: 'Generative AI & Creative Careers',
+        dateAdded: '2026-07-19',
+        mastered: true,
+      }
+    ];
+  });
 
   // Handlers
   const handleSelectCategory = (category: TestCategory) => {
     setActiveCategory(category);
   };
 
-  const handleSelectType = (type: TestType | 'All' | 'Analytics') => {
+  const handleSelectType = (type: TestType | 'All' | 'Analytics' | 'Vocabulary') => {
     setActiveType(type);
+  };
+
+  const handleAddVocabularyWord = (wordData: { word: string; definition: string; exampleSentence?: string; sourceTestId?: string; sourceTestTitle?: string }) => {
+    const newWord: VocabularyWord = {
+      ...wordData,
+      id: `vocab_${Date.now()}`,
+      dateAdded: new Date().toISOString().split('T')[0],
+      mastered: false,
+    };
+    setVocabularyList((prev) => {
+      const updated = [newWord, ...prev];
+      localStorage.setItem('ielts_vocabulary', JSON.stringify(updated));
+      return updated;
+    });
+    triggerToast(`Added "${newWord.word}" to Vocabulary Bank!`);
+  };
+
+  const handleToggleMastery = (id: string) => {
+    setVocabularyList((prev) => {
+      const updated = prev.map((w) => w.id === id ? { ...w, mastered: !w.mastered } : w);
+      localStorage.setItem('ielts_vocabulary', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleDeleteVocabularyWord = (id: string) => {
+    setVocabularyList((prev) => {
+      const updated = prev.filter((w) => w.id !== id);
+      localStorage.setItem('ielts_vocabulary', JSON.stringify(updated));
+      return updated;
+    });
+    triggerToast('Vocabulary word removed.');
   };
 
   const handleChangeTarget = (newTarget: number) => {
@@ -60,18 +139,27 @@ export default function App() {
     setSelectedTest(test);
   };
 
-  // Simulating completion of a mock practice test
-  const handleConfirmStart = (test: IELTSTest, mode: 'Practice' | 'Exam') => {
-    // 1. Generate random realistic band score based on difficulty and target
-    let mockBand = progress.targetBand - 0.5; // default center
-    if (test.difficulty === 'Easy') mockBand += 0.5;
-    if (test.difficulty === 'Hard') mockBand -= 0.5;
-    
-    // Add minor random fluctuation
-    mockBand += (Math.random() * 1.0 - 0.5);
-    // Bound scores between 4.5 and 9.0 in increments of 0.5
-    mockBand = Math.round(mockBand * 2) / 2;
-    mockBand = Math.max(4.5, Math.min(9.0, mockBand));
+  const handleVerifyUser = (lead: StudentLead) => {
+    setCurrentUser(lead);
+    localStorage.setItem('ielts_student_user', JSON.stringify(lead));
+    triggerToast(`Welcome ${lead.name}! Phone verification successful.`);
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('ielts_student_user');
+    triggerToast('You have logged out of your practice session.');
+  };
+
+  // Simulating completion of a mock practice test with calculated score and options
+  const handleConfirmStart = (
+    test: IELTSTest, 
+    mode: 'Practice' | 'Exam', 
+    score: number, 
+    userAnswers?: Record<string, string>, 
+    feedback?: string
+  ) => {
+    const mockBand = score;
 
     // 2. Generate correct answers if applicable
     const correctAnswers = test.questionsCount > 1 
@@ -84,12 +172,13 @@ export default function App() {
       testId: test.id,
       testTitle: test.title,
       category: test.category,
-      date: '2026-07-19', // Today
+      date: new Date().toISOString().split('T')[0], // Today
       bandScore: mockBand,
       correctAnswers,
       totalQuestions: test.questionsCount > 1 ? test.questionsCount : undefined,
-      timeSpentMinutes: Math.round(test.durationMinutes * (0.8 + Math.random() * 0.3)), // ~80% to 110% of duration
-      examinerFeedback: `Outstanding work on ${test.title}! Your accuracy under ${mode} Mode shows high command of language. Review errors in complex sentences to target a band higher next time.`
+      timeSpentMinutes: Math.round(test.durationMinutes * (0.5 + Math.random() * 0.4)), // dynamic timeframe
+      examinerFeedback: feedback || `Excellent work on ${test.title} under ${mode} Mode. Review difficult structures to hit your band ${progress.targetBand} target.`,
+      userAnswers
     };
 
     // 4. Update states
@@ -142,6 +231,8 @@ export default function App() {
         onChangeTarget={handleChangeTarget}
         streakIncremented={streakIncremented}
         onClaimStreak={handleClaimStreak}
+        currentUser={currentUser}
+        onLogout={handleLogout}
       />
 
       {/* IELTS standard navigation menu */}
@@ -155,7 +246,22 @@ export default function App() {
       {/* Main Content Workspace */}
       <main className="flex-grow mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
         <AnimatePresence mode="wait">
-          {activeType === 'Analytics' ? (
+          {activeType === 'Vocabulary' ? (
+            <motion.div
+              key="vocabulary"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <VocabularyView
+                vocabularyList={vocabularyList}
+                onAddWord={handleAddVocabularyWord}
+                onToggleMastery={handleToggleMastery}
+                onDeleteWord={handleDeleteVocabularyWord}
+              />
+            </motion.div>
+          ) : activeType === 'Analytics' ? (
             <motion.div
               key="analytics"
               initial={{ opacity: 0, y: 10 }}
@@ -230,6 +336,9 @@ export default function App() {
             test={selectedTest}
             onClose={() => setSelectedTest(null)}
             onConfirmStart={handleConfirmStart}
+            onAddVocabularyWord={handleAddVocabularyWord}
+            currentUser={currentUser}
+            onVerifyUser={handleVerifyUser}
           />
         )}
       </AnimatePresence>

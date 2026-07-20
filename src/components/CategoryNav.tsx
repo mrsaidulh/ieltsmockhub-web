@@ -5,8 +5,8 @@ import { TestCategory, TestType } from '../types';
 interface CategoryNavProps {
   activeCategory: TestCategory;
   onSelectCategory: (category: TestCategory) => void;
-  activeType: TestType | 'All' | 'Analytics';
-  onSelectType: (type: TestType | 'All' | 'Analytics') => void;
+  activeType: TestType | 'All' | 'Analytics' | 'Vocabulary';
+  onSelectType: (type: TestType | 'All' | 'Analytics' | 'Vocabulary') => void;
 }
 
 export default function CategoryNav({
@@ -104,8 +104,20 @@ export default function CategoryNav({
             </button>
           </div>
 
-          {/* Right aligned action - Analytics Toggle */}
+          {/* Right aligned action - Analytics & Vocabulary Toggles */}
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => onSelectType('Vocabulary')}
+              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                activeType === 'Vocabulary'
+                  ? 'bg-rose-50 border border-rose-200 text-rose-700 shadow-sm'
+                  : 'bg-white hover:bg-gray-100 text-gray-600 border border-gray-200'
+              }`}
+            >
+              <BookOpen className="h-3.5 w-3.5 text-rose-500" />
+              <span>Vocabulary Bank</span>
+            </button>
+            
             <button
               onClick={() => onSelectType('Analytics')}
               className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
@@ -114,7 +126,7 @@ export default function CategoryNav({
                   : 'bg-white hover:bg-gray-100 text-gray-600 border border-gray-200'
               }`}
             >
-              <BarChart3 className="h-3.5 w-3.5" />
+              <BarChart3 className="h-3.5 w-3.5 text-gray-500" />
               <span>Performance Analytics</span>
             </button>
           </div>

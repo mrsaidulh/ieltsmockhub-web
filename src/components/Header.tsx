@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Search, Bell, Flame, Target, User, Sparkles, GraduationCap } from 'lucide-react';
-import { UserProgress } from '../types';
+import { Search, Bell, Flame, Target, User, Sparkles, GraduationCap, LogOut } from 'lucide-react';
+import { UserProgress, StudentLead } from '../types';
 
 interface HeaderProps {
   progress: UserProgress;
   onChangeTarget: (newTarget: number) => void;
   streakIncremented: boolean;
   onClaimStreak: () => void;
+  currentUser: StudentLead | null;
+  onLogout: () => void;
 }
 
 export default function Header({
@@ -14,6 +16,8 @@ export default function Header({
   onChangeTarget,
   streakIncremented,
   onClaimStreak,
+  currentUser,
+  onLogout,
 }: HeaderProps) {
   const [showNotification, setShowNotification] = useState(false);
   const [showTargetDropdown, setShowTargetDropdown] = useState(false);
@@ -159,15 +163,34 @@ export default function Header({
 
           {/* Profile Badge */}
           <div className="flex items-center gap-2 border-l border-gray-100 pl-3">
-            <div className="relative h-8 w-8 cursor-pointer rounded-full bg-gray-100 ring-2 ring-transparent transition-all hover:ring-rose-500/30">
-              <span className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-tr from-gray-700 to-gray-800 text-xs font-bold text-white">
-                JD
-              </span>
-            </div>
-            <div className="hidden flex-col md:flex">
-              <span className="text-xs font-semibold text-gray-900">Jane Doe</span>
-              <span className="text-[10px] text-gray-400">Free Account</span>
-            </div>
+            {currentUser && currentUser.verified ? (
+              <>
+                <div className="relative h-8 w-8 rounded-full bg-rose-100 ring-2 ring-rose-500/20 flex items-center justify-center text-rose-700 font-bold text-xs uppercase" title={currentUser.name}>
+                  {currentUser.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                </div>
+                <div className="hidden flex-col md:flex text-left">
+                  <span className="text-xs font-semibold text-gray-900 max-w-[100px] truncate">{currentUser.name}</span>
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-100">Verified Student</span>
+                </div>
+                <button 
+                  onClick={onLogout}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors ml-1"
+                  title="Log out of Mock Hub"
+                >
+                  <LogOut className="h-4 w-4" />
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="relative h-8 w-8 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-500">
+                  <User className="h-4 w-4" />
+                </div>
+                <div className="hidden flex-col md:flex text-left">
+                  <span className="text-xs font-semibold text-gray-600">Guest User</span>
+                  <span className="text-[10px] font-semibold text-rose-500 animate-pulse">Verification Pending</span>
+                </div>
+              </>
+            )}
           </div>
 
         </div>
