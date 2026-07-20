@@ -445,13 +445,14 @@ export default function TestStartModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-950/60 backdrop-blur-sm" id="test-start-modal-backdrop">
-      {/* Modal Card */}
-      <motion.div
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/60 backdrop-blur-sm" id="test-start-modal-backdrop">
+      <div className="flex min-h-full items-center justify-center p-4">
+        {/* Modal Card */}
+        <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 15 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
-        className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-gray-100 bg-white p-6 shadow-2xl"
+        className="relative w-full max-w-xl rounded-3xl border border-gray-100 bg-white p-6 shadow-2xl my-8"
       >
         {/* Close Modal X */}
         <button
@@ -944,5 +945,6 @@ export default function TestStartModal({
 
       </motion.div>
     </div>
-  );
+  </div>
+);
 }

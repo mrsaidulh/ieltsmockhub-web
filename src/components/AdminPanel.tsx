@@ -298,8 +298,9 @@ export default function AdminPanel({
 
       {/* Confirmation Modal for Resets */}
       {showConfirmReset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 p-4 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 border border-gray-100 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/40 backdrop-blur-sm">
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="bg-white rounded-3xl max-w-sm w-full p-6 border border-gray-100 shadow-2xl space-y-4 my-8">
             <div className="h-10 w-10 bg-rose-50 rounded-full flex items-center justify-center text-rose-600 mx-auto">
               <AlertCircle className="h-6 w-6" />
             </div>
@@ -327,6 +328,7 @@ export default function AdminPanel({
             </div>
           </div>
         </div>
+      </div>
       )}
 
       {/* List Mode View */}

@@ -12,6 +12,7 @@ import AnalyticsView from './components/AnalyticsView';
 import TestStartModal from './components/TestStartModal';
 import VocabularyView from './components/VocabularyView';
 import AdminPanel from './components/AdminPanel';
+import StudentAuthModal from './components/StudentAuthModal';
 import { 
   INITIAL_USER_PROGRESS, MOCK_TESTS, 
   MOCK_ATTEMPT_HISTORY, MOCK_BAND_PROGRESS 
@@ -492,13 +493,14 @@ export default function App() {
       {/* Admin Authorization Security Dialog */}
       <AnimatePresence>
         {showAdminAuth && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/40 p-4 backdrop-blur-xs">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl max-w-sm w-full p-6 border border-gray-150 shadow-2xl space-y-5"
-            >
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/40 backdrop-blur-sm">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white rounded-3xl max-w-sm w-full p-6 border border-gray-150 shadow-2xl space-y-5 my-8"
+              >
               <div className="flex justify-between items-center pb-2 border-b border-gray-100">
                 <div className="flex items-center gap-2">
                   <ShieldAlert className="h-5 w-5 text-rose-600" />
@@ -569,6 +571,18 @@ export default function App() {
               </div>
             </motion.div>
           </div>
+        </div>
+      )}
+      </AnimatePresence>
+
+      {/* Student Authentication Modal */}
+      <AnimatePresence>
+        {showAuthModal && (
+          <StudentAuthModal
+            isOpen={showAuthModal}
+            onClose={() => setShowAuthModal(false)}
+            onVerifyUser={handleVerifyUser}
+          />
         )}
       </AnimatePresence>
 
