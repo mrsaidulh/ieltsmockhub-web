@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sparkles, CheckCircle2, ChevronRight, X, 
-  ArrowUpRight, Info, Compass, Target, GraduationCap 
+  ArrowUpRight, Info, Compass, Target, GraduationCap, Lock, Unlock, ShieldAlert
 } from 'lucide-react';
 import Header from './components/Header';
 import CategoryNav from './components/CategoryNav';
@@ -11,6 +11,7 @@ import TestList from './components/TestList';
 import AnalyticsView from './components/AnalyticsView';
 import TestStartModal from './components/TestStartModal';
 import VocabularyView from './components/VocabularyView';
+import AdminPanel from './components/AdminPanel';
 import { 
   INITIAL_USER_PROGRESS, MOCK_TESTS, 
   MOCK_ATTEMPT_HISTORY, MOCK_BAND_PROGRESS 
@@ -23,11 +24,58 @@ export default function App() {
   const [recentAttempts, setRecentAttempts] = useState<AttemptHistory[]>(MOCK_ATTEMPT_HISTORY);
   const [progressData, setProgressData] = useState<BandProgressPoint[]>(MOCK_BAND_PROGRESS);
   const [activeCategory, setActiveCategory] = useState<TestCategory>('all');
-  const [activeType, setActiveType] = useState<TestType | 'All' | 'Analytics' | 'Vocabulary'>('All');
+  const [activeType, setActiveType] = useState<TestType | 'All' | 'Analytics' | 'Vocabulary' | 'Admin'>('All');
   const [streakIncremented, setStreakIncremented] = useState(false);
   const [selectedTest, setSelectedTest] = useState<IELTSTest | null>(null);
   const [completedTestIds, setCompletedTestIds] = useState<string[]>(['r1', 'l1']);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+
+  // Admin authentication and privileges
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    return localStorage.getItem('ielts_is_admin') === 'true';
+  });
+  const [showAdminAuth, setShowAdminAuth] = useState<boolean>(false);
+  const [adminPinInput, setAdminPinInput] = useState<string>('');
+  const [adminPinError, setAdminPinError] = useState<string | null>(null);
+
+  // Close Admin PIN modal on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showAdminAuth) {
+        setShowAdminAuth(false);
+        setAdminPinError(null);
+        setAdminPinInput('');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showAdminAuth]);
+
+  // Content Bank Tests state (loads custom tests and merges with default mock tests)
+  const [tests, setTests] = useState<IELTSTest[]>(() => {
+    const saved = localStorage.getItem('ielts_custom_tests');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const merged = [...parsed];
+          MOCK_TESTS.forEach((mTest) => {
+            if (!merged.some((t) => t.id === mTest.id)) {
+              merged.push(mTest);
+            }
+          });
+          return merged;
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return MOCK_TESTS;
+  });
 
   // Student Lead Session State
   const [currentUser, setCurrentUser] = useState<StudentLead | null>(() => {
@@ -135,6 +183,62 @@ export default function App() {
     }
   };
 
+  const handleAddTest = (newTest: IELTSTest) => {
+    setTests((prev) => {
+      const updated = [newTest, ...prev];
+      localStorage.setItem('ielts_custom_tests', JSON.stringify(updated.filter(t => t.id.startsWith('custom_'))));
+      return updated;
+    });
+    triggerToast(`"${newTest.title}" deployed successfully!`);
+  };
+
+  const handleUpdateTest = (updatedTest: IELTSTest) => {
+    setTests((prev) => {
+      const updated = prev.map((t) => t.id === updatedTest.id ? updatedTest : t);
+      localStorage.setItem('ielts_custom_tests', JSON.stringify(updated.filter(t => t.id.startsWith('custom_'))));
+      return updated;
+    });
+    triggerToast(`"${updatedTest.title}" updated successfully!`);
+  };
+
+  const handleDeleteTest = (id: string) => {
+    setTests((prev) => {
+      const updated = prev.filter((t) => t.id !== id);
+      localStorage.setItem('ielts_custom_tests', JSON.stringify(updated.filter(t => t.id.startsWith('custom_'))));
+      return updated;
+    });
+    triggerToast(`Test deleted successfully.`);
+  };
+
+  const handleResetToDefaults = () => {
+    setTests(MOCK_TESTS);
+    localStorage.removeItem('ielts_custom_tests');
+    triggerToast('All content restored to core mock data defaults.');
+  };
+
+  const handleAdminLogin = (pin: string) => {
+    if (pin.trim() === 'admin123') {
+      setIsAdmin(true);
+      localStorage.setItem('ielts_is_admin', 'true');
+      setShowAdminAuth(false);
+      setAdminPinInput('');
+      setAdminPinError(null);
+      setActiveType('Admin'); // Immediately transition to Admin workspace!
+      triggerToast('Welcome Admin! Content manager tools unlocked.');
+    } else {
+      setAdminPinError('Invalid security passcode. Hint: Use admin123');
+    }
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdmin(false);
+    localStorage.removeItem('ielts_is_admin');
+    if (activeType === 'Admin') {
+      setActiveType('All');
+    }
+    triggerToast('Administrator logged out successfully.');
+  };
+
   const handleStartTest = (test: IELTSTest) => {
     setSelectedTest(test);
   };
@@ -233,6 +337,9 @@ export default function App() {
         onClaimStreak={handleClaimStreak}
         currentUser={currentUser}
         onLogout={handleLogout}
+        onVerifyUser={handleVerifyUser}
+        showAuthModal={showAuthModal}
+        setShowAuthModal={setShowAuthModal}
       />
 
       {/* IELTS standard navigation menu */}
@@ -241,12 +348,31 @@ export default function App() {
         onSelectCategory={handleSelectCategory}
         activeType={activeType}
         onSelectType={handleSelectType}
+        isAdmin={isAdmin}
+        onAdminAuthClick={() => setShowAdminAuth(true)}
       />
 
       {/* Main Content Workspace */}
       <main className="flex-grow mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
         <AnimatePresence mode="wait">
-          {activeType === 'Vocabulary' ? (
+          {activeType === 'Admin' ? (
+            <motion.div
+              key="admin-panel"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              <AdminPanel
+                tests={tests}
+                onAddTest={handleAddTest}
+                onUpdateTest={handleUpdateTest}
+                onDeleteTest={handleDeleteTest}
+                onResetToDefaults={handleResetToDefaults}
+                onLogoutAdmin={handleAdminLogout}
+              />
+            </motion.div>
+          ) : activeType === 'Vocabulary' ? (
             <motion.div
               key="vocabulary"
               initial={{ opacity: 0, y: 10 }}
@@ -291,6 +417,10 @@ export default function App() {
                 onSelectType={handleSelectType}
                 streakIncremented={streakIncremented}
                 onClaimStreak={handleClaimStreak}
+                tests={tests}
+                onStartTest={handleStartTest}
+                currentUser={currentUser}
+                onOpenAuth={() => setShowAuthModal(true)}
               />
             </motion.div>
           ) : (
@@ -303,7 +433,7 @@ export default function App() {
               transition={{ duration: 0.2 }}
             >
               <TestList
-                tests={MOCK_TESTS}
+                tests={tests}
                 category={activeCategory}
                 selectedType={activeType}
                 onStartTest={handleStartTest}
@@ -323,9 +453,25 @@ export default function App() {
             <span className="text-gray-300">|</span>
             <span className="font-mono">IELTSmockhub.com</span>
           </div>
-          <p>
-            © 2026 IELTS Mock Hub. Designed in collaboration with senior software architects. Non-affiliated with IDP, IELTS, or British Council.
-          </p>
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3 text-xs">
+            <button
+              onClick={() => {
+                if (isAdmin) {
+                  setActiveType('Admin');
+                } else {
+                  setShowAdminAuth(true);
+                }
+              }}
+              className="flex items-center gap-1.5 text-gray-500 hover:text-rose-600 font-bold transition-colors cursor-pointer"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              <span>Admin Portal</span>
+            </button>
+            <span className="text-gray-200">|</span>
+            <p className="text-gray-400">
+              © 2026 IELTS Mock Hub. Non-affiliated with IDP, IELTS, or British Council.
+            </p>
+          </div>
         </div>
       </footer>
 
@@ -340,6 +486,89 @@ export default function App() {
             currentUser={currentUser}
             onVerifyUser={handleVerifyUser}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Admin Authorization Security Dialog */}
+      <AnimatePresence>
+        {showAdminAuth && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-950/40 p-4 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl max-w-sm w-full p-6 border border-gray-150 shadow-2xl space-y-5"
+            >
+              <div className="flex justify-between items-center pb-2 border-b border-gray-100">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="h-5 w-5 text-rose-600" />
+                  <h3 className="font-extrabold text-gray-900 text-sm">Staff Authentication</h3>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowAdminAuth(false);
+                    setAdminPinError(null);
+                    setAdminPinInput('');
+                  }}
+                  className="p-1 rounded-full text-gray-400 hover:bg-gray-100"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-left">
+                <p className="text-xs text-gray-400">
+                  Please enter the Admin Security PIN to manage actual reading articles, speaking prompts, and streaming tracks.
+                </p>
+
+                <div className="bg-rose-50 border border-rose-100 rounded-xl p-2.5 text-[11px] text-rose-700 font-semibold flex items-center gap-2">
+                  <span className="bg-rose-600 text-white rounded text-[9px] px-1 py-0.2 font-extrabold uppercase">Hint</span>
+                  <span>PIN is <strong className="font-mono">admin123</strong> for testing & verification.</span>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-500 uppercase">Security PIN</label>
+                  <input
+                    type="password"
+                    placeholder="Enter Security PIN"
+                    value={adminPinInput}
+                    onChange={(e) => {
+                      setAdminPinInput(e.target.value);
+                      if (adminPinError) setAdminPinError(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleAdminLogin(adminPinInput);
+                      }
+                    }}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-center font-mono font-bold tracking-widest text-gray-800 outline-none focus:bg-white focus:border-rose-500"
+                  />
+                  {adminPinError && (
+                    <p className="text-[10px] text-rose-600 font-bold mt-1">{adminPinError}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => {
+                    setShowAdminAuth(false);
+                    setAdminPinError(null);
+                    setAdminPinInput('');
+                  }}
+                  className="flex-1 py-2.5 border border-gray-200 text-xs font-semibold text-gray-600 rounded-xl hover:bg-gray-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleAdminLogin(adminPinInput)}
+                  className="flex-1 py-2.5 bg-rose-600 text-xs font-semibold text-white rounded-xl hover:bg-rose-500 cursor-pointer"
+                >
+                  Unlock Access
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 

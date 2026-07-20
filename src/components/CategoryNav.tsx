@@ -1,12 +1,14 @@
 import React from 'react';
-import { LayoutGrid, Headphones, BookOpen, SquarePen, Mic, BarChart3 } from 'lucide-react';
+import { LayoutGrid, Headphones, BookOpen, SquarePen, Mic, Lock, Unlock } from 'lucide-react';
 import { TestCategory, TestType } from '../types';
 
 interface CategoryNavProps {
   activeCategory: TestCategory;
   onSelectCategory: (category: TestCategory) => void;
-  activeType: TestType | 'All' | 'Analytics' | 'Vocabulary';
-  onSelectType: (type: TestType | 'All' | 'Analytics' | 'Vocabulary') => void;
+  activeType: TestType | 'All' | 'Analytics' | 'Vocabulary' | 'Admin';
+  onSelectType: (type: TestType | 'All' | 'Analytics' | 'Vocabulary' | 'Admin') => void;
+  isAdmin: boolean;
+  onAdminAuthClick: () => void;
 }
 
 export default function CategoryNav({
@@ -14,6 +16,8 @@ export default function CategoryNav({
   onSelectCategory,
   activeType,
   onSelectType,
+  isAdmin,
+  onAdminAuthClick,
 }: CategoryNavProps) {
   
   const categories = [
@@ -104,30 +108,30 @@ export default function CategoryNav({
             </button>
           </div>
 
-          {/* Right aligned action - Analytics & Vocabulary Toggles */}
+          {/* Right aligned action - Admin Panel Toggle */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => onSelectType('Vocabulary')}
-              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                activeType === 'Vocabulary'
-                  ? 'bg-rose-50 border border-rose-200 text-rose-700 shadow-sm'
-                  : 'bg-white hover:bg-gray-100 text-gray-600 border border-gray-200'
+              onClick={() => {
+                if (isAdmin) {
+                  onSelectType('Admin');
+                } else {
+                  onAdminAuthClick();
+                }
+              }}
+              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+                activeType === 'Admin'
+                  ? 'bg-rose-600 text-white border border-rose-600 shadow-sm'
+                  : isAdmin
+                  ? 'bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 shadow-sm'
+                  : 'bg-white hover:bg-gray-100 text-gray-500 border border-gray-200'
               }`}
             >
-              <BookOpen className="h-3.5 w-3.5 text-rose-500" />
-              <span>Vocabulary Bank</span>
-            </button>
-            
-            <button
-              onClick={() => onSelectType('Analytics')}
-              className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
-                activeType === 'Analytics'
-                  ? 'bg-rose-50 border border-rose-200 text-rose-700 shadow-sm'
-                  : 'bg-white hover:bg-gray-100 text-gray-600 border border-gray-200'
-              }`}
-            >
-              <BarChart3 className="h-3.5 w-3.5 text-gray-500" />
-              <span>Performance Analytics</span>
+              {isAdmin ? (
+                <Unlock className="h-3.5 w-3.5 text-rose-500" />
+              ) : (
+                <Lock className="h-3.5 w-3.5 text-gray-400" />
+              )}
+              <span>Admin Panel</span>
             </button>
           </div>
 

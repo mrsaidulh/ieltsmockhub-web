@@ -10,6 +10,7 @@ export interface StudentLead {
   phone: string;
   verified: boolean;
   otpSent?: boolean;
+  password?: string;
 }
 
 export type QuestionType = 'MCQ' | 'MatchingHeadings' | 'TrueFalseNotGiven' | 'Blanks';
@@ -37,6 +38,10 @@ export interface IELTSTest {
   description: string;
   sections: string[];
   questions?: IELTSQuestion[]; // Embedded interactive questions
+  passage?: string; // Custom reading passage text
+  audioUrl?: string; // Listening audio stream source URL
+  audioScript?: string; // Listening audio spoken transcript script
+  year?: number; // Release/Publication Year of the test
 }
 
 export interface UserProgress {

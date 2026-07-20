@@ -79,38 +79,57 @@ export default function TestSession({
       <div className="space-y-6 text-left">
         {/* Academic Reading Excerpt */}
         {test.category === 'reading' && (
-          <div className="space-y-2 rounded-2xl border border-rose-100 bg-rose-50/10 p-4 max-h-48 overflow-y-auto">
+          <div className="space-y-2 rounded-2xl border border-rose-100 bg-rose-50/10 p-4 max-h-60 overflow-y-auto">
             <h4 className="text-[10px] font-bold text-rose-700 uppercase tracking-wider flex items-center gap-1">
               <BookOpen className="h-3.5 w-3.5" />
-              <span>Academic Reading Excerpt</span>
+              <span>Academic Reading Passage</span>
             </h4>
-            <p className="text-[11px] text-gray-600 leading-relaxed font-sans">
-              <strong>The Architecture of Coral Reefs:</strong> Built by tiny organisms known as coral polyps, reefs are underwater castles. Polyps secrete hard carbonate exoskeletons which support vast communities. However, ocean temperature rises of even 1.5°C disrupt the fragile symbiotic algae, leading to widespread bleaching events...
-            </p>
+            <div className="text-[11px] text-gray-600 leading-relaxed font-sans whitespace-pre-wrap">
+              {test.passage ? (
+                test.passage
+              ) : (
+                <>
+                  <strong>The Architecture of Coral Reefs:</strong> Built by tiny organisms known as coral polyps, reefs are underwater castles. Polyps secrete hard carbonate exoskeletons which support vast communities. However, ocean temperature rises of even 1.5°C disrupt the fragile symbiotic algae, leading to widespread bleaching events...
+                </>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Listening simulated audio player */}
+        {/* Listening simulated or real audio player */}
         {test.category === 'listening' && (
           <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 animate-pulse">
-                <Volume2 className="h-5 w-5" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+                <Volume2 className="h-5 w-5 animate-pulse" />
               </div>
               <div>
                 <h4 className="text-xs font-bold text-gray-800">IELTS Audio Core Track</h4>
-                <p className="text-[10px] text-gray-400">Section 1 Conversation — Membership and Booking Details</p>
+                <p className="text-[10px] text-gray-400">
+                  {test.audioScript || "Section 1 Conversation — Membership and Booking Details"}
+                </p>
               </div>
             </div>
-            <div className="flex items-center gap-3 rounded-xl bg-white p-2 border border-gray-100 shadow-sm">
-              <button className="text-blue-600 hover:text-blue-700">
-                <PlayCircle className="h-6 w-6" />
-              </button>
-              <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 animate-pulse" style={{ width: '40%' }} />
+            {test.audioUrl ? (
+              <div className="rounded-xl bg-white p-3 border border-gray-100 shadow-sm flex flex-col gap-2">
+                <audio 
+                  src={test.audioUrl} 
+                  controls 
+                  className="w-full text-xs h-9 accent-rose-600 rounded-lg outline-none"
+                />
+                <span className="text-[9px] font-mono text-gray-400 font-bold self-end uppercase">Real-Time Audio Stream</span>
               </div>
-              <span className="text-[10px] font-mono text-gray-400 font-semibold">01:05 / 03:20</span>
-            </div>
+            ) : (
+              <div className="flex items-center gap-3 rounded-xl bg-white p-2 border border-gray-100 shadow-sm">
+                <button type="button" className="text-blue-600 hover:text-blue-700">
+                  <PlayCircle className="h-6 w-6" />
+                </button>
+                <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-blue-500" style={{ width: '40%' }} />
+                </div>
+                <span className="text-[10px] font-mono text-gray-400 font-semibold">01:05 / 03:20</span>
+              </div>
+            )}
           </div>
         )}
 

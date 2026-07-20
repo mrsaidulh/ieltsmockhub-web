@@ -59,8 +59,8 @@ export default function TestStartModal({
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [reviewMode, setReviewMode] = useState(false);
 
-  // Load questions for specific test
-  const activeQuestions = test ? (MOCK_QUESTIONS_BY_TEST_ID[test.id] || []) : [];
+  // Load questions for specific test (supports both custom embedded questions and hardcoded mocks)
+  const activeQuestions = test ? (test.questions || MOCK_QUESTIONS_BY_TEST_ID[test.id] || []) : [];
 
   // Update time based on selections when starting test
   useEffect(() => {
