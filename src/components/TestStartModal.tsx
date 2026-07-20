@@ -444,6 +444,30 @@ export default function TestStartModal({
     );
   };
 
+  if (isSimulating && !hasSubmitted && !isVerifying) {
+    return (
+      <TestSession
+        test={test}
+        timeLimit={timeLimit}
+        activeQuestions={activeQuestions}
+        onCancel={() => {
+          setIsSimulating(false);
+          onClose();
+        }}
+        onSubmit={(answers, essay) => {
+          setUserAnswers(answers);
+          setWritingEssay(essay);
+          if (currentUser && currentUser.verified) {
+            calculateAndShowResults(answers, essay);
+          } else {
+            setIsVerifying(true);
+          }
+        }}
+        onAddVocabularyWord={onAddVocabularyWord}
+      />
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/60 backdrop-blur-sm" id="test-start-modal-backdrop">
       <div className="flex min-h-full items-center justify-center p-4">
@@ -642,29 +666,6 @@ export default function TestStartModal({
               </button>
             </div>
           </div>
-        )}
-
-        {/* STEP 2: ACTIVE SIMULATION WITH DYNAMIC TESTSESSION WORKSPACE */}
-        {isSimulating && !hasSubmitted && !isVerifying && (
-          <TestSession
-            test={test}
-            timeLimit={timeLimit}
-            activeQuestions={activeQuestions}
-            onCancel={() => {
-              setIsSimulating(false);
-              onClose();
-            }}
-            onSubmit={(answers, essay) => {
-              setUserAnswers(answers);
-              setWritingEssay(essay);
-              if (currentUser && currentUser.verified) {
-                calculateAndShowResults(answers, essay);
-              } else {
-                setIsVerifying(true);
-              }
-            }}
-            onAddVocabularyWord={onAddVocabularyWord}
-          />
         )}
 
         {/* STEP 3: BANGLADESHI LEAD GENERATION & OTP VERIFICATION */}
