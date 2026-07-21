@@ -48,11 +48,11 @@ export default function StudentAuthModal({
     // Default registered student matching user's likely demo phone/email
     const defaults = [
       {
-        name: 'S.M. Saidul Islam',
-        email: 'saidulgmac@gmail.com',
-        phone: '0172010300',
+        name: 'Saidul Hasan',
+        email: 'info@ieltsmockhub.com',
+        phone: '01340861415',
         verified: true,
-        password: 'password123'
+        password: 'IELTSRevolution'
       }
     ];
     localStorage.setItem('ielts_registered_students', JSON.stringify(defaults));
@@ -122,7 +122,7 @@ export default function StudentAuthModal({
     const isBdNumber = /(^(\+880|880)?(1[3-9]\d{8})$)/.test(cleanPhone) || /^(01[3-9]\d{8})$/.test(cleanPhone);
     
     if (!isBdNumber) {
-      setAuthError('Please enter a valid Bangladeshi mobile number (e.g. 0172010300)');
+      setAuthError('Please enter a valid Bangladeshi mobile number (e.g. 01340861314)');
       return;
     }
 
@@ -203,7 +203,7 @@ export default function StudentAuthModal({
     const isBdNumber = /(^(\+880|880)?(1[3-9]\d{8})$)/.test(cleanPhone) || /^(01[3-9]\d{8})$/.test(cleanPhone);
     
     if (!isBdNumber) {
-      setAuthError('Please enter a valid Bangladeshi mobile number (e.g. 0172010300)');
+      setAuthError('Please enter a valid Bangladeshi mobile number (e.g. 01340861314)');
       return;
     }
 
@@ -347,7 +347,7 @@ export default function StudentAuthModal({
                 <input
                   type="tel"
                   required
-                  placeholder="e.g. 0172010300"
+                  placeholder="e.g. 01340861314"
                   value={loginPhone}
                   onChange={(e) => setLoginPhone(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-800 outline-none focus:bg-white focus:border-rose-500 transition-colors"
@@ -401,8 +401,8 @@ export default function StudentAuthModal({
               {/* Hint Box */}
               <div className="rounded-xl bg-gray-50 p-2.5 border border-gray-150 text-[10px] text-gray-500 leading-normal text-left">
                 <span className="font-bold text-rose-600 block mb-0.5">Demo Credentials:</span>
-                Mobile: <strong className="font-mono text-gray-700">0172010300</strong><br />
-                Password: <strong className="font-mono text-gray-700">password123</strong>
+                Mobile: <strong className="font-mono text-gray-700">01340861415</strong><br />
+                Password: <strong className="font-mono text-gray-700">IELTSRevolution</strong>
               </div>
             </form>
           ) : isVerifyingRegPhone ? (
@@ -469,7 +469,7 @@ export default function StudentAuthModal({
                 <input
                   type="text"
                   required
-                  placeholder="e.g. S.M. Saidul Islam"
+                  placeholder="e.g. Saidul Hasan"
                   value={regName}
                   onChange={(e) => setRegName(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-800 outline-none focus:bg-white focus:border-rose-500 transition-colors"
@@ -485,7 +485,7 @@ export default function StudentAuthModal({
                 <input
                   type="email"
                   required
-                  placeholder="e.g. saidulgmac@gmail.com"
+                  placeholder="e.g. info@ieltsmockhub.com"
                   value={regEmail}
                   onChange={(e) => setRegEmail(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-800 outline-none focus:bg-white focus:border-rose-500 transition-colors"
@@ -501,7 +501,7 @@ export default function StudentAuthModal({
                 <input
                   type="tel"
                   required
-                  placeholder="e.g. 0172010300"
+                  placeholder="e.g. 01340861314"
                   value={regPhone}
                   onChange={(e) => setRegPhone(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-800 outline-none focus:bg-white focus:border-rose-500 transition-colors"

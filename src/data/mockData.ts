@@ -82,7 +82,7 @@ export const MOCK_TESTS: IELTSTest[] = [
     testNumber: 1,
     bookYear: 2026,
     passageNumber: 1,
-    questionTypes: ['MatchingHeadings', 'MCQ', 'TrueFalseNotGiven']
+    questionTypes: ['MatchingHeadings', 'MCQ', 'TrueFalseNotGiven', 'YesNoNotGiven', 'MatchingInfo', 'MatchingFeatures', 'MatchingSentenceEndings', 'SentenceCompletion', 'SummaryCompletion', 'DiagramCompletion', 'ShortAnswer']
   },
   {
     id: 'r2',

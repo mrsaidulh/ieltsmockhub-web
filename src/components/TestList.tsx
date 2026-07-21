@@ -331,7 +331,7 @@ export default function TestList({
                 )}
 
                 <div className="space-y-4">
-                  {/* Category, Type, Difficulty Header */}
+                  {/* Category, Type Header */}
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={`rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${catBadgeColors[test.category]}`}>
                       {test.category}

@@ -5,7 +5,8 @@ import {
 } from 'recharts';
 import { 
   TrendingUp, Award, Clock, CheckCircle2, AlertTriangle, 
-  Lightbulb, Sparkles, Star, ChevronRight, HelpCircle
+  Lightbulb, Sparkles, Star, ChevronRight, HelpCircle,
+  Volume2, BookOpen, PenTool, Mic
 } from 'lucide-react';
 import { BandProgressPoint, AttemptHistory, UserProgress } from '../types';
 
@@ -55,6 +56,26 @@ export default function AnalyticsView({
     { name: 'Speaking', score: 6.5, status: 'Needs Focus', description: 'Outstanding conversational flow. Focus on maintaining tense consistency in Cue Cards.' },
   ];
 
+  // Category averages (Last 5 attempts)
+  const categoryConfig = [
+    { id: 'listening', title: 'Listening', icon: Volume2, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
+    { id: 'reading', title: 'Reading', icon: BookOpen, color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100' },
+    { id: 'writing', title: 'Writing', icon: PenTool, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
+    { id: 'speaking', title: 'Speaking', icon: Mic, color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' }
+  ];
+
+  const categoryAverages = categoryConfig.map(config => {
+    const attempts = recentAttempts.filter(a => a.category === config.id);
+    const sorted = [...attempts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const last5 = sorted.slice(0, 5);
+    const avg = last5.length > 0 ? (last5.reduce((sum, a) => sum + a.bandScore, 0) / last5.length) : 0;
+    return {
+      ...config,
+      average: avg,
+      count: last5.length
+    };
+  });
+
   return (
     <div className="space-y-8 py-6" id="analytics-view-container">
       {/* 1. Header & Summary Row */}
@@ -80,6 +101,27 @@ export default function AnalyticsView({
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Category Averages */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {categoryAverages.map((cat) => {
+          const Icon = cat.icon;
+          return (
+            <div key={cat.id} className={`rounded-xl border ${cat.border} bg-white p-4 shadow-sm flex flex-col items-center justify-center text-center space-y-2`}>
+              <div className={`rounded-full ${cat.bg} ${cat.color} p-2`}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500">{cat.title}</p>
+                <div className="flex items-end justify-center gap-1">
+                  <span className={`text-xl font-bold ${cat.color}`}>{cat.average > 0 ? cat.average.toFixed(1) : '-'}</span>
+                </div>
+                <p className="text-[9px] text-gray-400 mt-0.5">Last {cat.count} attempts</p>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* 2. Primary Charts Grid */}

@@ -169,43 +169,6 @@ export default function DashboardOverview({
 
   return (
     <div className="space-y-6 py-6" id="dashboard-overview-container">
-
-      {/* Slogan & Welcome Hero Section */}
-      <div className="relative overflow-hidden rounded-3xl border border-gray-150 bg-white p-6 sm:p-8 shadow-xs flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-pink-500/5 rounded-full blur-2xl -ml-20 -mb-20 pointer-events-none" />
-        
-        <div className="space-y-3 text-left max-w-xl z-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-100 text-[10px] font-black text-rose-700 uppercase tracking-widest">
-            <Sparkles className="h-3 w-3 animate-spin duration-3000 text-rose-500" />
-            <span>Official Slogan</span>
-          </div>
-          <h1 className="font-sans text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">
-            Learn, Practice, Test & Score.
-          </h1>
-          <p className="text-xs text-gray-500 leading-relaxed max-w-md">
-            Master authentic Cambridge IELTS practice tests. Track your daily habits, analyze detailed band estimates, and score higher with standard guidance.
-          </p>
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-3 shrink-0 z-10 w-full md:w-auto">
-          <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-100 rounded-2xl px-4 py-2.5">
-            <Trophy className="h-4.5 w-4.5 text-rose-500" />
-            <div className="text-left">
-              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Official Material</span>
-              <span className="text-[11px] font-extrabold text-gray-800">Cambridge IELTS 1-21</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-100 rounded-2xl px-4 py-2.5">
-            <GraduationCap className="h-4.5 w-4.5 text-rose-500" />
-            <div className="text-left">
-              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Assessment Type</span>
-              <span className="text-[11px] font-extrabold text-gray-800">Academic & General</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* 1. Student Dashboard Metrics & Goals Block */}
       {currentUser ? (
         <div className="space-y-6">
@@ -375,6 +338,66 @@ export default function DashboardOverview({
                   </>
                 )}
               </button>
+            </div>
+          </div>
+
+          {/* Recent Activity Timeline */}
+          <div className="rounded-2xl border border-gray-150 bg-white p-5 shadow-xs">
+            <div className="flex items-center justify-between mb-4 text-left">
+              <div>
+                <h3 className="text-sm font-extrabold text-gray-900">Recent Activity</h3>
+                <p className="text-xs text-gray-400">Your latest practice attempts</p>
+              </div>
+              <button 
+                onClick={() => {}}
+                className="text-[10px] font-bold text-gray-500 hover:text-gray-700 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-200 transition-colors cursor-pointer"
+              >
+                View Full History
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              {recentAttempts.slice(0, 3).map((attempt, idx) => {
+                const isExcellent = attempt.bandScore >= 7.5;
+                const isGood = attempt.bandScore >= 6.0 && attempt.bandScore < 7.5;
+                
+                let badgeColor = "bg-rose-50 text-rose-600 border-rose-100";
+                if (isExcellent) badgeColor = "bg-emerald-50 text-emerald-600 border-emerald-100";
+                else if (isGood) badgeColor = "bg-amber-50 text-amber-600 border-amber-100";
+
+                return (
+                  <div key={attempt.id} className="relative pl-6 pb-4 border-l-2 border-gray-100 last:border-l-transparent last:pb-0 text-left">
+                    {/* Timeline Node */}
+                    <div className="absolute left-[-5px] top-1.5 h-2 w-2 rounded-full bg-white ring-2 ring-rose-500" />
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 bg-gray-50/50 p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[9px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded border ${catBadgeColors[attempt.category] || 'bg-gray-100 text-gray-600'}`}>
+                            {attempt.category}
+                          </span>
+                          <span className="text-[10px] font-medium text-gray-400">
+                            {new Date(attempt.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        </div>
+                        <h4 className="text-xs font-bold text-gray-900 truncate max-w-[200px] sm:max-w-xs">{attempt.testTitle}</h4>
+                        <p className="text-[10px] text-gray-500">{attempt.timeSpentMinutes} mins spent</p>
+                      </div>
+                      
+                      <div className={`shrink-0 flex flex-col items-center justify-center px-3 py-1.5 rounded-lg border ${badgeColor}`}>
+                        <span className="text-[9px] font-bold uppercase tracking-wider opacity-75">Band</span>
+                        <span className="text-sm font-black">{attempt.bandScore.toFixed(1)}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              
+              {recentAttempts.length === 0 && (
+                <div className="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                  <p className="text-xs font-medium text-gray-500">No recent activity yet. Start your first test!</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -557,7 +580,7 @@ export default function DashboardOverview({
                 </div>
 
                 <div className="space-y-3.5">
-                  {/* Category Badge & Difficulty */}
+                  {/* Category Badge */}
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className={`rounded-md border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 ${catBadgeColors[test.category]}`}>
                       <IconComponent className="h-3 w-3" />

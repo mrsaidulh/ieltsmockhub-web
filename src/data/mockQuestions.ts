@@ -69,7 +69,7 @@ export const MOCK_QUESTIONS_BY_TEST_ID: Record<string, IELTSQuestion[]> = {
         'iv. Artificial reef construction milestones'
       ],
       correctAnswer: 'ii',
-      explanation: "Paragraph A describes the basic structural mechanics of reefs: 'The architectural marvel of coral reefs is built on tiny organisms known as coral polyps. Polyps secrete hard carbonate exoskeletons which support vast underwater communities.'",
+      explanation: "Paragraph A describes the basic structural mechanics of reefs.",
       passageNumber: 1
     },
     {
@@ -83,16 +83,83 @@ export const MOCK_QUESTIONS_BY_TEST_ID: Record<string, IELTSQuestion[]> = {
         'D. Sudden reductions in baseline solar radiation levels'
       ],
       correctAnswer: 'B',
-      explanation: "The text states: 'However, ocean temperature rises of even 1.5°C disrupt the fragile symbiotic algae, leading to widespread bleaching events.'",
-      passageNumber: 2
+      explanation: "The text states: 'However, ocean temperature rises of even 1.5°C disrupt the fragile symbiotic algae.'",
+      passageNumber: 1
     },
     {
       id: 'r1_q3',
       type: 'TrueFalseNotGiven',
       questionText: 'Only greenhouse emissions contribute to modern coral reef deterioration.',
       correctAnswer: 'False',
-      explanation: "The passage notes that while greenhouse temperature rises are a primary threat, other human activities like chemical runoff and physical damage from anchoring also degrade the reefs, so emissions are not the 'only' cause.",
+      explanation: "The passage notes that while greenhouse temperature rises are a primary threat, other human activities also degrade the reefs.",
+      passageNumber: 1
+    },
+    {
+      id: 'r1_q4',
+      type: 'YesNoNotGiven',
+      questionText: 'The author agrees that artificial reefs are a complete replacement for natural reefs.',
+      correctAnswer: 'No',
+      explanation: "The author explicitly states that artificial reefs can never fully replace the complex ecosystem of natural reefs.",
+      passageNumber: 1
+    },
+    {
+      id: 'r1_q5',
+      type: 'MatchingInfo',
+      questionText: 'Which paragraph contains information about the financial cost of coral bleaching?',
+      options: ['A', 'B', 'C', 'D'],
+      correctAnswer: 'C',
+      explanation: "Paragraph C details the economic impact, including lost tourism revenue.",
       passageNumber: 2
+    },
+    {
+      id: 'r1_q6',
+      type: 'MatchingFeatures',
+      questionText: 'Match the coral reef type with its primary location.',
+      options: ['A. Great Barrier Reef', 'B. Mesoamerican Reef', 'C. Red Sea Coral Reef'],
+      correctAnswer: 'A',
+      explanation: "The Great Barrier Reef is located in Australia.",
+      passageNumber: 2
+    },
+    {
+      id: 'r1_q7',
+      type: 'MatchingSentenceEndings',
+      questionText: 'The process of coral bleaching occurs when...',
+      options: ['A. water temperatures drop significantly.', 'B. symbiotic algae are expelled.', 'C. fish populations increase.'],
+      correctAnswer: 'B',
+      explanation: "Bleaching happens when stressed corals expel their algae.",
+      passageNumber: 2
+    },
+    {
+      id: 'r1_q8',
+      type: 'SentenceCompletion',
+      questionText: 'Coral reefs are often referred to as the __________ of the sea.',
+      correctAnswer: 'rainforests',
+      explanation: "They are called rainforests of the sea due to their high biodiversity.",
+      passageNumber: 3
+    },
+    {
+      id: 'r1_q9',
+      type: 'SummaryCompletion',
+      questionText: 'Complete the summary: Coral reefs provide habitats for many marine species. However, they are threatened by climate change and _________.',
+      correctAnswer: 'pollution',
+      explanation: "The summary section mentions pollution as the secondary major threat.",
+      passageNumber: 3
+    },
+    {
+      id: 'r1_q10',
+      type: 'DiagramCompletion',
+      questionText: 'Label the part of the coral polyp that is used to capture food.',
+      correctAnswer: 'tentacles',
+      explanation: "The diagram shows the tentacles extending to catch plankton.",
+      passageNumber: 3
+    },
+    {
+      id: 'r1_q11',
+      type: 'ShortAnswer',
+      questionText: 'What is the minimum temperature required for coral reefs to thrive?',
+      correctAnswer: '18 degrees',
+      explanation: "The passage states that corals need water of at least 18 degrees Celsius.",
+      passageNumber: 3
     }
   ],
   r2: [

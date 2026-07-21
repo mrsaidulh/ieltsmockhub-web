@@ -106,6 +106,17 @@ export default function TestStartModal({
     };
   }, [isSimulating, isTimerPaused, hasSubmitted, timeLimit]);
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSimulating && !isVerifying) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSimulating, isVerifying, onClose]);
+
   if (!test) return null;
 
   // Set time limit under 5 minutes for demonstration / warning tests
@@ -403,7 +414,11 @@ export default function TestStartModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/60 backdrop-blur-sm" id="test-start-modal-backdrop">
+    <div 
+      className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/60 backdrop-blur-sm" 
+      id="test-start-modal-backdrop"
+      onClick={onClose}
+    >
       <div className="flex min-h-full items-center justify-center p-4">
         {/* Modal Card */}
         <motion.div
@@ -411,6 +426,7 @@ export default function TestStartModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 15 }}
         className="relative w-full max-w-xl rounded-3xl border border-gray-100 bg-white p-6 shadow-2xl my-8"
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Close Modal X */}
         <button

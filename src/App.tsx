@@ -493,13 +493,21 @@ export default function App() {
       {/* Admin Authorization Security Dialog */}
       <AnimatePresence>
         {showAdminAuth && (
-          <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/40 backdrop-blur-sm">
+          <div 
+            className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/40 backdrop-blur-sm"
+            onClick={() => {
+              setShowAdminAuth(false);
+              setAdminPinError(null);
+              setAdminPinInput('');
+            }}
+          >
             <div className="flex min-h-full items-center justify-center p-4">
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 className="bg-white rounded-3xl max-w-sm w-full p-6 border border-gray-150 shadow-2xl space-y-5 my-8"
+                onClick={(e) => e.stopPropagation()}
               >
               <div className="flex justify-between items-center pb-2 border-b border-gray-100">
                 <div className="flex items-center gap-2">

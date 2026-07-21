@@ -91,6 +91,21 @@ export default function TestSession({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (showExitConfirm) {
+          setShowExitConfirm(false);
+        } else {
+          setShowExitConfirm(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showExitConfirm]);
+
   // Draggable partition splitter logic
   useEffect(() => {
     if (!isResizing) return;
@@ -1341,8 +1356,14 @@ export default function TestSession({
 
       {/* EXIT CONFIRMATION DIALOG MODAL */}
       {showExitConfirm && (
-        <div className="fixed inset-0 z-50 bg-gray-950/75 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-150 text-left space-y-6 animate-in fade-in zoom-in-95 duration-200">
+        <div 
+          className="fixed inset-0 z-50 bg-gray-950/75 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setShowExitConfirm(false)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-150 text-left space-y-6 animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
                 <AlertTriangle className="h-5 w-5" />

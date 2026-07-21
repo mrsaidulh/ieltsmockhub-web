@@ -7,7 +7,7 @@ import {
   PlusCircle, CheckCircle2, ChevronRight, Settings, Image as ImageIcon,
   Table as TableIcon, Info, Layers
 } from 'lucide-react';
-import { IELTSTest, IELTSQuestion, TestCategory, TestType, DifficultyLevel, QuestionType, PassageBlock } from '../types';
+import { IELTSTest, IELTSQuestion, TestCategory, TestType, QuestionType, PassageBlock } from '../types';
 import QuestionRenderer from './QuestionRenderer';
 
 interface AdminTestManagerProps {
@@ -28,7 +28,6 @@ const TEMPLATE_ACADEMIC_1: IELTSTest = {
   questionsCount: 5,
   attemptsCount: 0,
   averageScore: 7.5,
-  difficulty: 'Hard',
   description: 'An advanced Academic reading test on ocean temperatures and micro-organism adaptation speeds, featuring Matching Paragraph Headings, Yes/No/Not Given, and Sentence Completion.',
   sections: ['Section 1: Micro-polyp adaptability under thermal stress'],
   passageBlocks: [
@@ -131,7 +130,6 @@ const TEMPLATE_GENERAL_1: IELTSTest = {
   questionsCount: 4,
   attemptsCount: 0,
   averageScore: 7.0,
-  difficulty: 'Medium',
   description: 'A General Training Reading passage and questions regarding optimal chair height, screen posture, and preventative movement breaks, focusing on MCQ and Identifying Info.',
   sections: ['Section 1: Posture guidelines and preventative workplace habits'],
   passageBlocks: [
@@ -212,7 +210,6 @@ export default function AdminTestManager({
   const [testId, setTestId] = useState<string>(`custom_${Date.now()}`);
   const [title, setTitle] = useState('');
   const [type, setType] = useState<TestType>('Academic');
-  const [difficulty, setDifficulty] = useState<DifficultyLevel>('Medium');
   const [durationMinutes, setDurationMinutes] = useState<number>(60);
   const [description, setDescription] = useState('');
   const [year, setYear] = useState<number>(2026);
@@ -255,7 +252,6 @@ export default function AdminTestManager({
     setTestId(`custom_${Date.now()}`);
     setTitle(template.title);
     setType(template.type);
-    setDifficulty(template.difficulty);
     setDurationMinutes(template.durationMinutes);
     setDescription(template.description);
     setYear(template.year || 2026);
@@ -283,8 +279,7 @@ export default function AdminTestManager({
       durationMinutes: Number(durationMinutes) || 60,
       questionsCount: questions.length,
       attemptsCount: 0,
-      averageScore: difficulty === 'Easy' ? 7.5 : difficulty === 'Medium' ? 7.0 : 6.5,
-      difficulty,
+      averageScore: 7.0,
       description: description.trim() || `Authentic IELTS practice reading exam focusing on comprehensive structure analysis.`,
       sections: ['Section 1: General Reading Comprehension'],
       passageBlocks: passageBlocks,
@@ -620,19 +615,6 @@ export default function AdminTestManager({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase block">Difficulty</label>
-                  <select
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value as DifficultyLevel)}
-                    className="w-full text-xs font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl p-2.5 outline-none"
-                  >
-                    <option value="Easy">Easy</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Hard">Hard</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-gray-500 uppercase block">Time (Min)</label>
                   <input
                     type="number"
@@ -651,6 +633,8 @@ export default function AdminTestManager({
                 <input
                   type="number"
                   placeholder="e.g. 2026"
+                  min={2011}
+                  max={2026}
                   value={year}
                   onChange={(e) => setYear(Number(e.target.value))}
                   className="w-full text-xs font-bold text-gray-800 bg-white border border-gray-200 rounded-xl p-2.5 outline-none focus:border-rose-500 transition-all"
@@ -662,6 +646,8 @@ export default function AdminTestManager({
                 <input
                   type="number"
                   placeholder="e.g. 21"
+                  min={10}
+                  max={21}
                   value={bookNumber}
                   onChange={(e) => setBookNumber(e.target.value !== '' ? Number(e.target.value) : '')}
                   className="w-full text-xs font-bold text-gray-800 bg-white border border-gray-200 rounded-xl p-2.5 outline-none focus:border-rose-500 transition-all"
@@ -673,6 +659,8 @@ export default function AdminTestManager({
                 <input
                   type="number"
                   placeholder="e.g. 1"
+                  min={1}
+                  max={4}
                   value={testNumber}
                   onChange={(e) => setTestNumber(e.target.value !== '' ? Number(e.target.value) : '')}
                   className="w-full text-xs font-bold text-gray-800 bg-white border border-gray-200 rounded-xl p-2.5 outline-none focus:border-rose-500 transition-all"
@@ -934,16 +922,15 @@ export default function AdminTestManager({
                   </div>
 
                   <div className="space-y-1">
-                    <span className="text-[10px] font-bold text-gray-500 uppercase block">Passage / Part Number</span>
+                    <span className="text-[10px] font-bold text-gray-500 uppercase block">Passage Number</span>
                     <select
                       value={qPassageNumber}
                       onChange={(e) => setQPassageNumber(Number(e.target.value))}
                       className="w-full text-xs font-semibold text-gray-700 border border-gray-200 rounded-xl p-2 bg-white"
                     >
-                      <option value={1}>Passage 1 / Part 1</option>
-                      <option value={2}>Passage 2 / Part 2</option>
-                      <option value={3}>Passage 3 / Part 3</option>
-                      <option value={4}>Passage 4 / Part 4</option>
+                      <option value={1}>Passage 1</option>
+                      <option value={2}>Passage 2</option>
+                      <option value={3}>Passage 3</option>
                     </select>
                   </div>
 

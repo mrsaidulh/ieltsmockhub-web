@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Database, Plus, Trash2, Edit3, ArrowLeft, Check, AlertCircle, 
   HelpCircle, Volume2, BookOpen, PenTool, Mic, PlusCircle, MinusCircle, 
@@ -85,6 +85,17 @@ export default function AdminPanel({
   const [formError, setFormError] = useState<string | null>(null);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
 
+  // Close confirmation modal on escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showConfirmReset) {
+        setShowConfirmReset(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showConfirmReset]);
+
   // Load existing test data for editing
   const handleStartEdit = (test: IELTSTest) => {
     setEditingTestId(test.id);
@@ -136,7 +147,6 @@ export default function AdminPanel({
     setCategory('reading');
     setType('Academic');
     setDurationMinutes(60);
-    setDifficulty('Medium');
     setDescription('');
     setSectionsText('');
     setPassage('');
@@ -252,8 +262,8 @@ export default function AdminPanel({
       return;
     }
     const yNum = Number(year);
-    if (isNaN(yNum) || yNum < 1980 || yNum > 2030) {
-      setFormError('Book Year must be a valid number between 1980 and 2030.');
+    if (isNaN(yNum) || yNum < 2011 || yNum > 2026) {
+      setFormError('Book Year must be a valid number between 2011 and 2026.');
       return;
     }
 
@@ -262,8 +272,8 @@ export default function AdminPanel({
       return;
     }
     const bNum = Number(bookNumber);
-    if (isNaN(bNum) || bNum < 1 || bNum > 21) {
-      setFormError('Book Number must be a valid number between 1 and 21.');
+    if (isNaN(bNum) || bNum < 10 || bNum > 21) {
+      setFormError('Book Number must be a valid number between 10 and 21.');
       return;
     }
 
@@ -278,12 +288,13 @@ export default function AdminPanel({
     }
 
     if (passageNumber === '') {
-      setFormError('Passage Number is required.');
+      setFormError('Passage / Part Number is required.');
       return;
     }
     const pNum = Number(passageNumber);
-    if (isNaN(pNum) || pNum < 1 || pNum > 3) {
-      setFormError('Passage Number must be a valid number between 1 and 3.');
+    const maxPassage = category === 'listening' ? 4 : 3;
+    if (isNaN(pNum) || pNum < 1 || pNum > maxPassage) {
+      setFormError(`Passage / Part Number must be a valid number between 1 and ${maxPassage}.`);
       return;
     }
 
@@ -428,9 +439,15 @@ export default function AdminPanel({
 
       {/* Confirmation Modal for Resets */}
       {showConfirmReset && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/40 backdrop-blur-sm">
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/40 backdrop-blur-sm"
+          onClick={() => setShowConfirmReset(false)}
+        >
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="bg-white rounded-3xl max-w-sm w-full p-6 border border-gray-100 shadow-2xl space-y-4 my-8">
+            <div 
+              className="bg-white rounded-3xl max-w-sm w-full p-6 border border-gray-100 shadow-2xl space-y-4 my-8"
+              onClick={(e) => e.stopPropagation()}
+            >
             <div className="h-10 w-10 bg-rose-50 rounded-full flex items-center justify-center text-rose-600 mx-auto">
               <AlertCircle className="h-6 w-6" />
             </div>
@@ -632,6 +649,8 @@ export default function AdminPanel({
                 <input
                   type="number"
                   placeholder="e.g. 2026"
+                  min={2011}
+                  max={2026}
                   value={year === '' ? '' : year}
                   onChange={(e) => setYear(e.target.value !== '' ? Number(e.target.value) : '')}
                   className="w-full rounded-xl border border-gray-200 bg-white p-2.5 text-xs text-gray-700 outline-none transition-all focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
@@ -639,11 +658,11 @@ export default function AdminPanel({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-rose-700 uppercase">Book Number (1-21) *</label>
+                <label className="text-[11px] font-bold text-rose-700 uppercase">Book Number (10-21) *</label>
                 <input
                   type="number"
                   placeholder="e.g. 21"
-                  min={1}
+                  min={10}
                   max={21}
                   value={bookNumber === '' ? '' : bookNumber}
                   onChange={(e) => setBookNumber(e.target.value !== '' ? Number(e.target.value) : '')}
@@ -665,12 +684,14 @@ export default function AdminPanel({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-rose-700 uppercase">Passage Number (1-3) *</label>
+                <label className="text-[11px] font-bold text-rose-700 uppercase">
+                  {category === 'listening' ? 'Part Number (1-4) *' : 'Passage Number (1-3) *'}
+                </label>
                 <input
                   type="number"
                   placeholder="e.g. 1"
                   min={1}
-                  max={3}
+                  max={category === 'listening' ? 4 : 3}
                   value={passageNumber === '' ? '' : passageNumber}
                   onChange={(e) => setPassageNumber(e.target.value !== '' ? Number(e.target.value) : '')}
                   className="w-full rounded-xl border border-gray-200 bg-white p-2.5 text-xs text-gray-700 outline-none transition-all focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
