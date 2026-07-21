@@ -170,6 +170,42 @@ export default function DashboardOverview({
   return (
     <div className="space-y-6 py-6" id="dashboard-overview-container">
 
+      {/* Slogan & Welcome Hero Section */}
+      <div className="relative overflow-hidden rounded-3xl border border-gray-150 bg-white p-6 sm:p-8 shadow-xs flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/5 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-pink-500/5 rounded-full blur-2xl -ml-20 -mb-20 pointer-events-none" />
+        
+        <div className="space-y-3 text-left max-w-xl z-10">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-100 text-[10px] font-black text-rose-700 uppercase tracking-widest">
+            <Sparkles className="h-3 w-3 animate-spin duration-3000 text-rose-500" />
+            <span>Official Slogan</span>
+          </div>
+          <h1 className="font-sans text-2xl sm:text-3xl font-black text-gray-900 tracking-tight leading-none">
+            Learn, Practice, Test & Score.
+          </h1>
+          <p className="text-xs text-gray-500 leading-relaxed max-w-md">
+            Master authentic Cambridge IELTS practice tests. Track your daily habits, analyze detailed band estimates, and score higher with standard guidance.
+          </p>
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-3 shrink-0 z-10 w-full md:w-auto">
+          <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-100 rounded-2xl px-4 py-2.5">
+            <Trophy className="h-4.5 w-4.5 text-rose-500" />
+            <div className="text-left">
+              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Official Material</span>
+              <span className="text-[11px] font-extrabold text-gray-800">Cambridge IELTS 1-21</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-100 rounded-2xl px-4 py-2.5">
+            <GraduationCap className="h-4.5 w-4.5 text-rose-500" />
+            <div className="text-left">
+              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Assessment Type</span>
+              <span className="text-[11px] font-extrabold text-gray-800">Academic & General</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* 1. Student Dashboard Metrics & Goals Block */}
       {currentUser ? (
         <div className="space-y-6">

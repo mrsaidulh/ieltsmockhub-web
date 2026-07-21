@@ -2,8 +2,6 @@ export type TestCategory = 'all' | 'listening' | 'reading' | 'writing' | 'speaki
 
 export type TestType = 'Academic' | 'General';
 
-export type DifficultyLevel = 'Easy' | 'Medium' | 'Hard';
-
 export interface StudentLead {
   name: string;
   email: string;
@@ -13,16 +11,37 @@ export interface StudentLead {
   password?: string;
 }
 
-export type QuestionType = 'MCQ' | 'MatchingHeadings' | 'TrueFalseNotGiven' | 'Blanks';
+export type QuestionType = 
+  | 'MCQ' 
+  | 'TrueFalseNotGiven' 
+  | 'YesNoNotGiven' 
+  | 'MatchingHeadings' 
+  | 'MatchingInfo' 
+  | 'MatchingFeatures' 
+  | 'MatchingSentenceEndings' 
+  | 'SentenceCompletion' 
+  | 'SummaryCompletion' 
+  | 'DiagramCompletion' 
+  | 'ShortAnswer'
+  | 'Blanks';
+
+export interface PassageBlock {
+  id: string;
+  type: 'paragraph' | 'heading' | 'image' | 'table';
+  content: string; // text or cell data (JSON) or caption
+  imageUrl?: string;
+  caption?: string;
+}
 
 export interface IELTSQuestion {
   id: string;
   type: QuestionType;
   questionText: string;
-  options?: string[]; // For MCQ or MatchingHeadings list
+  options?: string[]; // For MCQ, MatchingInfo, MatchingFeatures, MatchingSentenceEndings, etc.
   correctAnswer: string;
   explanation: string;
   headingOptions?: string[]; // Specifically for matching paragraph headings
+  passageNumber?: number; // Passage number (e.g., 1, 2, 3 for Reading; or Part 1, 2, 3, 4 for Listening)
 }
 
 export interface IELTSTest {
@@ -34,14 +53,19 @@ export interface IELTSTest {
   questionsCount: number;
   attemptsCount: number;
   averageScore: number;
-  difficulty: DifficultyLevel;
   description: string;
   sections: string[];
   questions?: IELTSQuestion[]; // Embedded interactive questions
-  passage?: string; // Custom reading passage text
+  passage?: string; // Custom reading passage text (legacy)
+  passageBlocks?: PassageBlock[]; // Modern block-based content
   audioUrl?: string; // Listening audio stream source URL
   audioScript?: string; // Listening audio spoken transcript script
   year?: number; // Release/Publication Year of the test
+  bookNumber: number; // e.g., 21 for Cambridge IELTS Book 21
+  testNumber: number; // e.g., 1 for Test 1
+  bookYear: number;
+  passageNumber: number;
+  questionTypes: QuestionType[];
 }
 
 export interface UserProgress {

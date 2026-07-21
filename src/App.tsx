@@ -452,7 +452,7 @@ export default function App() {
             <GraduationCap className="h-4 w-4 text-rose-500" />
             <span className="font-semibold text-gray-700">IELTS Mock Hub</span>
             <span className="text-gray-300">|</span>
-            <span className="font-mono">IELTSmockhub.com</span>
+            <span className="font-mono text-[10px] font-bold text-gray-500 uppercase tracking-widest">Learn, Practice, Test & Score</span>
           </div>
           <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3 text-xs">
             <button

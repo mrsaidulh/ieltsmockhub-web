@@ -7,7 +7,8 @@ export const MOCK_QUESTIONS_BY_TEST_ID: Record<string, IELTSQuestion[]> = {
       type: 'Blanks',
       questionText: 'The preferred date for membership commencement is the 14th of ______.',
       correctAnswer: 'October',
-      explanation: "The receptionist states: 'I can schedule the membership to start from the fourteenth of October.' The candidate confirms this is perfect."
+      explanation: "The receptionist states: 'I can schedule the membership to start from the fourteenth of October.' The candidate confirms this is perfect.",
+      passageNumber: 1
     },
     {
       id: 'l1_q2',
@@ -20,14 +21,16 @@ export const MOCK_QUESTIONS_BY_TEST_ID: Record<string, IELTSQuestion[]> = {
         'D. £90 (Family bundle tier)'
       ],
       correctAnswer: 'B',
-      explanation: "The speaker mentions: 'Our standard general public rate is seventy-five pounds, but since you are a full-time university student, you qualify for our 20% discount, bringing it down to sixty pounds annually.'"
+      explanation: "The speaker mentions: 'Our standard general public rate is seventy-five pounds, but since you are a full-time university student, you qualify for our 20% discount, bringing it down to sixty pounds annually.'",
+      passageNumber: 1
     },
     {
       id: 'l1_q3',
       type: 'TrueFalseNotGiven',
       questionText: 'The library requires a physical utility bill to verify the student\'s local address.',
       correctAnswer: 'False',
-      explanation: "The librarian says: 'Any digital PDF copy of your rental agreement or a bank statement shown on your phone is perfectly fine. We do not require a hardcopy utility bill anymore.'"
+      explanation: "The librarian says: 'Any digital PDF copy of your rental agreement or a bank statement shown on your phone is perfectly fine. We do not require a hardcopy utility bill anymore.'",
+      passageNumber: 2
     }
   ],
   l2: [
@@ -36,7 +39,8 @@ export const MOCK_QUESTIONS_BY_TEST_ID: Record<string, IELTSQuestion[]> = {
       type: 'Blanks',
       questionText: 'The workplace safety briefing is scheduled to take place in the ______ room.',
       correctAnswer: 'Conference',
-      explanation: "The manager announces: 'Please make your way over to the main Conference room on the second floor where the briefing will begin in ten minutes.'"
+      explanation: "The manager announces: 'Please make your way over to the main Conference room on the second floor where the briefing will begin in ten minutes.'",
+      passageNumber: 1
     },
     {
       id: 'l2_q2',
@@ -49,7 +53,8 @@ export const MOCK_QUESTIONS_BY_TEST_ID: Record<string, IELTSQuestion[]> = {
         'D. Full safety goggles and dust particulate respirators'
       ],
       correctAnswer: 'C',
-      explanation: "The safety officer highlights: 'Standard operating procedures state that steel-toed boots and orange high-visibility vests are non-negotiable for anyone stepping onto the active factory floor.'"
+      explanation: "The safety officer highlights: 'Standard operating procedures state that steel-toed boots and orange high-visibility vests are non-negotiable for anyone stepping onto the active factory floor.'",
+      passageNumber: 2
     }
   ],
   r1: [
@@ -64,7 +69,8 @@ export const MOCK_QUESTIONS_BY_TEST_ID: Record<string, IELTSQuestion[]> = {
         'iv. Artificial reef construction milestones'
       ],
       correctAnswer: 'ii',
-      explanation: "Paragraph A describes the basic structural mechanics of reefs: 'The architectural marvel of coral reefs is built on tiny organisms known as coral polyps. Polyps secrete hard carbonate exoskeletons which support vast underwater communities.'"
+      explanation: "Paragraph A describes the basic structural mechanics of reefs: 'The architectural marvel of coral reefs is built on tiny organisms known as coral polyps. Polyps secrete hard carbonate exoskeletons which support vast underwater communities.'",
+      passageNumber: 1
     },
     {
       id: 'r1_q2',
@@ -77,14 +83,16 @@ export const MOCK_QUESTIONS_BY_TEST_ID: Record<string, IELTSQuestion[]> = {
         'D. Sudden reductions in baseline solar radiation levels'
       ],
       correctAnswer: 'B',
-      explanation: "The text states: 'However, ocean temperature rises of even 1.5°C disrupt the fragile symbiotic algae, leading to widespread bleaching events.'"
+      explanation: "The text states: 'However, ocean temperature rises of even 1.5°C disrupt the fragile symbiotic algae, leading to widespread bleaching events.'",
+      passageNumber: 2
     },
     {
       id: 'r1_q3',
       type: 'TrueFalseNotGiven',
       questionText: 'Only greenhouse emissions contribute to modern coral reef deterioration.',
       correctAnswer: 'False',
-      explanation: "The passage notes that while greenhouse temperature rises are a primary threat, other human activities like chemical runoff and physical damage from anchoring also degrade the reefs, so emissions are not the 'only' cause."
+      explanation: "The passage notes that while greenhouse temperature rises are a primary threat, other human activities like chemical runoff and physical damage from anchoring also degrade the reefs, so emissions are not the 'only' cause.",
+      passageNumber: 2
     }
   ],
   r2: [
@@ -99,14 +107,16 @@ export const MOCK_QUESTIONS_BY_TEST_ID: Record<string, IELTSQuestion[]> = {
         'D. 11:00 to 14:00'
       ],
       correctAnswer: 'B',
-      explanation: "The guidelines policy document states: 'All full-time personnel must be present or active during our core operation hours from 10:00 AM to 3:00 PM daily.'"
+      explanation: "The guidelines policy document states: 'All full-time personnel must be present or active during our core operation hours from 10:00 AM to 3:00 PM daily.'",
+      passageNumber: 1
     },
     {
       id: 'r2_q2',
       type: 'TrueFalseNotGiven',
       questionText: 'Employees must sign out physically at the security desk when leaving for lunch.',
       correctAnswer: 'False',
-      explanation: "The policy mentions: 'Physical sign-outs are no longer required. Lunches and short departures should instead be logged via the digital workspace clock-out portal.'"
+      explanation: "The policy mentions: 'Physical sign-outs are no longer required. Lunches and short departures should instead be logged via the digital workspace clock-out portal.'",
+      passageNumber: 2
     }
   ],
   r3: [
@@ -121,7 +131,8 @@ export const MOCK_QUESTIONS_BY_TEST_ID: Record<string, IELTSQuestion[]> = {
         'iv. Cognitive effects of monochromatic color palettes'
       ],
       correctAnswer: 'ii',
-      explanation: "Paragraph A details the Gestalt grouping principles, specifically focusing on proximity: 'The human brain automatically groups elements that are visually close together into single perceived patterns, a principle known as proximity.'"
+      explanation: "Paragraph A details the Gestalt grouping principles, specifically focusing on proximity: 'The human brain automatically groups elements that are visually close together into single perceived patterns, a principle known as proximity.'",
+      passageNumber: 1
     },
     {
       id: 'r3_q2',
@@ -134,7 +145,8 @@ export const MOCK_QUESTIONS_BY_TEST_ID: Record<string, IELTSQuestion[]> = {
         'D. Neurological bandwidth'
       ],
       correctAnswer: 'B',
-      explanation: "The passage defines 'cognitive load' as the amount of mental processing power required by the human mind to navigate, read, and comprehend complex system elements."
+      explanation: "The passage defines 'cognitive load' as the amount of mental processing power required by the human mind to navigate, read, and comprehend complex system elements.",
+      passageNumber: 2
     }
   ]
 };

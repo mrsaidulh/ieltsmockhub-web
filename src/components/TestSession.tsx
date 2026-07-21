@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { IELTSTest, IELTSQuestion } from '../types';
 import SpeakingPractice from './SpeakingPractice';
+import QuestionRenderer from './QuestionRenderer';
 
 interface TestSessionProps {
   test: IELTSTest;
@@ -26,6 +27,13 @@ export default function TestSession({
 }: TestSessionProps) {
   const totalSeconds = timeLimit === 'unlimited' ? 0 : parseInt(timeLimit) * 60;
   
+  // Rich Highlight Interface
+  interface RichHighlight {
+    text: string;
+    type: 'highlight' | 'underline';
+    note?: string;
+  }
+
   // States
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [writingEssay, setWritingEssay] = useState('');
@@ -38,11 +46,25 @@ export default function TestSession({
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
   const [notificationToast, setNotificationToast] = useState<string | null>(null);
 
+  // New IELTS Computer features
+  const [colorTheme, setColorTheme] = useState<'standard' | 'contrast' | 'beige'>('standard');
+  const [volume, setVolume] = useState<number>(80);
+  const [leftWidth, setLeftWidth] = useState<number>(50); // Equal width partition (50/50 split)
+  const [isResizing, setIsResizing] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  
+  // Note-taking temporary states
+  const [noteInput, setNoteInput] = useState<string>('');
+  const [showNoteForm, setShowNoteForm] = useState<boolean>(false);
+
   // Advanced IELTS states
-  const [highlights, setHighlights] = useState<string[]>([]);
+  const [highlights, setHighlights] = useState<RichHighlight[]>([]);
   const [flaggedQuestions, setFlaggedQuestions] = useState<string[]>([]);
   const [selectionBox, setSelectionBox] = useState<{ x: number; y: number; text: string } | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+
+  // Container reference for draggable partition
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // References to keep timer accurate without resets during text updates
   const answersRef = useRef(userAnswers);
@@ -61,6 +83,52 @@ export default function TestSession({
     onSubmitRef.current = onSubmit;
   }, [onSubmit]);
 
+  // Track mobile screen sizes
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Draggable partition splitter logic
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const relativeX = e.clientX - rect.left;
+      const percentage = (relativeX / rect.width) * 100;
+      // Impose limits to prevent panels from vanishing
+      setLeftWidth(Math.min(Math.max(percentage, 25), 75));
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!containerRef.current || e.touches.length === 0) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const relativeX = e.touches[0].clientX - rect.left;
+      const percentage = (relativeX / rect.width) * 100;
+      setLeftWidth(Math.min(Math.max(percentage, 25), 75));
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchmove', handleTouchMove);
+    document.addEventListener('touchend', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleMouseUp);
+    };
+  }, [isResizing]);
+
   // Load saved progress draft from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem(`ielts_draft_${test.id}`);
@@ -70,8 +138,22 @@ export default function TestSession({
         if (parsed.userAnswers) setUserAnswers(parsed.userAnswers);
         if (parsed.writingEssay) setWritingEssay(parsed.writingEssay);
         if (parsed.scratchpadText) setScratchpadText(parsed.scratchpadText);
-        if (parsed.highlights) setHighlights(parsed.highlights);
+        
+        if (parsed.highlights) {
+          // Convert legacy format string list of highlights to rich structures
+          const converted = parsed.highlights.map((h: any) => {
+            if (typeof h === 'string') {
+              return { text: h, type: 'highlight' as const };
+            }
+            return h;
+          });
+          setHighlights(converted);
+        }
+        
         if (parsed.flaggedQuestions) setFlaggedQuestions(parsed.flaggedQuestions);
+        if (parsed.colorTheme) setColorTheme(parsed.colorTheme);
+        if (parsed.volume !== undefined) setVolume(parsed.volume);
+        if (parsed.leftWidth !== undefined) setLeftWidth(parsed.leftWidth);
         if (parsed.secondsLeft !== undefined && timeLimit !== 'unlimited') {
           setSecondsLeft(parsed.secondsLeft);
         }
@@ -91,10 +173,13 @@ export default function TestSession({
       highlights,
       flaggedQuestions,
       secondsLeft,
+      colorTheme,
+      volume,
+      leftWidth,
       timestamp: Date.now()
     };
     localStorage.setItem(`ielts_draft_${test.id}`, JSON.stringify(draftData));
-  }, [userAnswers, writingEssay, scratchpadText, highlights, flaggedQuestions, secondsLeft, test.id]);
+  }, [userAnswers, writingEssay, scratchpadText, highlights, flaggedQuestions, secondsLeft, colorTheme, volume, leftWidth, test.id]);
 
   // Alert before browser tab close
   useEffect(() => {
@@ -118,9 +203,12 @@ export default function TestSession({
         const rect = range.getBoundingClientRect();
         setSelectionBox({
           x: rect.left + window.scrollX,
-          y: rect.top + window.scrollY - 45,
+          y: rect.top + window.scrollY - 50,
           text
         });
+        // Clear any previous note-taking drafts
+        setShowNoteForm(false);
+        setNoteInput('');
       } catch (err) {
         // Range bounding client rect can occasionally throw errors if selection changes rapidly
       }
@@ -129,19 +217,22 @@ export default function TestSession({
     }
   };
 
-  const handleAddHighlight = (text: string) => {
+  const handleAddHighlight = (text: string, type: 'highlight' | 'underline' = 'highlight', note?: string) => {
     if (!text || text.trim().length === 0) return;
-    if (!highlights.includes(text)) {
-      setHighlights(prev => [...prev, text]);
-      triggerToast("Highlighted passage section!");
-    }
+    setHighlights(prev => {
+      const filtered = prev.filter(h => h.text.toLowerCase() !== text.toLowerCase());
+      return [...filtered, { text, type, note: note || undefined }];
+    });
+    triggerToast(note ? "Added note & marked passage!" : `Added ${type === 'underline' ? 'underline' : 'highlight'}!`);
     setSelectionBox(null);
+    setShowNoteForm(false);
+    setNoteInput('');
     window.getSelection()?.removeAllRanges();
   };
 
   const handleRemoveHighlight = (text: string) => {
-    setHighlights(prev => prev.filter(h => h !== text));
-    triggerToast("Highlight removed.");
+    setHighlights(prev => prev.filter(h => h.text.toLowerCase() !== text.toLowerCase()));
+    triggerToast("Removed mark.");
   };
 
   // Auto-close toast
@@ -202,10 +293,10 @@ export default function TestSession({
     }
   };
 
-  // Highlight-aware text rendering helper
-  const highlightText = (text: string, highlightPhrases: string[]) => {
-    if (!highlightPhrases || highlightPhrases.length === 0) return <span>{text}</span>;
-    const phrases = highlightPhrases.filter(p => p.trim().length > 0);
+  // Highlight-aware text rendering helper with rich styles and note indicators
+  const highlightText = (text: string, richHighlights: RichHighlight[]) => {
+    if (!richHighlights || richHighlights.length === 0) return <span>{text}</span>;
+    const phrases = richHighlights.map(h => h.text).filter(p => p.trim().length > 0);
     if (phrases.length === 0) return <span>{text}</span>;
 
     // Escape regex characters
@@ -218,22 +309,55 @@ export default function TestSession({
       return (
         <span>
           {parts.map((part, i) => {
-            const isHighlighted = phrases.some(p => p.toLowerCase() === part.toLowerCase());
-            return isHighlighted ? (
-              <mark 
-                key={i} 
-                className="bg-yellow-200 text-gray-900 rounded-sm px-0.5 cursor-pointer hover:bg-yellow-300 transition-colors inline relative group font-sans" 
-                title="Click to remove highlight"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemoveHighlight(part);
-                }}
-              >
-                {part}
-              </mark>
-            ) : (
-              <span key={i}>{part}</span>
-            );
+            const hObj = richHighlights.find(h => h.text.toLowerCase() === part.toLowerCase());
+            if (hObj) {
+              const isUnderline = hObj.type === 'underline';
+              return (
+                <span 
+                  key={i} 
+                  className={`relative group inline cursor-pointer select-text transition-all ${
+                    isUnderline
+                      ? 'underline decoration-sky-500 decoration-2 underline-offset-2 hover:bg-sky-50 px-0.5'
+                      : 'bg-yellow-200 text-gray-950 rounded-sm px-0.5 hover:bg-yellow-300'
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
+                  {part}
+                  
+                  {/* Floating tooltip/note card on hover */}
+                  <span className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 hidden group-hover:flex flex-col bg-gray-950 text-white text-[10px] p-2.5 rounded-xl shadow-2xl z-30 min-w-[200px] border border-gray-850 text-left pointer-events-auto leading-normal">
+                    <span className="text-yellow-400 font-extrabold uppercase text-[8px] tracking-wider mb-1 block">
+                      {isUnderline ? 'Blue Underline' : 'Yellow Highlight'} {hObj.note && '• Notes attached'}
+                    </span>
+                    {hObj.note ? (
+                      <p className="text-gray-100 font-sans mb-2 italic bg-gray-900 p-1.5 rounded-lg border border-gray-800">"{hObj.note}"</p>
+                    ) : (
+                      <p className="text-gray-400 mb-2">No custom note attached.</p>
+                    )}
+                    <button
+                      type="button"
+                      onClick={(evt) => {
+                        evt.stopPropagation();
+                        handleRemoveHighlight(hObj.text);
+                      }}
+                      className="text-rose-400 hover:text-rose-300 font-extrabold text-[9px] self-end cursor-pointer uppercase tracking-wider"
+                    >
+                      Delete Mark
+                    </button>
+                  </span>
+
+                  {/* Tiny note indicator */}
+                  {hObj.note && (
+                    <span className="inline-flex items-center justify-center ml-1 px-1.5 py-0.5 text-[8px] font-extrabold bg-rose-600 hover:bg-rose-500 text-white rounded-md leading-none shadow-xs">
+                      ✍️
+                    </span>
+                  )}
+                </span>
+              );
+            }
+            return <span key={i}>{part}</span>;
           })}
         </span>
       );
@@ -244,6 +368,82 @@ export default function TestSession({
 
   // Helper for mock text rendering with custom paragraph structures
   const renderPassageParagraphs = () => {
+    // If we have custom block-based structures, render them sequentially
+    if (test.passageBlocks && test.passageBlocks.length > 0) {
+      let paragraphCounter = 0;
+      return (
+        <div className="space-y-4 text-left">
+          {test.passageBlocks.map((block, idx) => {
+            if (block.type === 'heading') {
+              return (
+                <h4 key={block.id || idx} className="text-xs sm:text-sm font-extrabold text-gray-800 uppercase tracking-wider mt-6 mb-2.5 flex items-center gap-2 border-l-2 border-rose-500 pl-2">
+                  {block.content}
+                </h4>
+              );
+            }
+
+            if (block.type === 'paragraph') {
+              paragraphCounter++;
+              const letterLabel = String.fromCharCode(64 + paragraphCounter);
+              return (
+                <div key={block.id || idx} className="flex gap-4 items-start text-left mb-4.5">
+                  <span className="font-mono text-[11px] font-extrabold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md mt-0.5" title={`Paragraph ${letterLabel}`}>
+                    {letterLabel}
+                  </span>
+                  <p className="leading-relaxed font-sans flex-1">
+                    {highlightText(block.content, highlights)}
+                  </p>
+                </div>
+              );
+            }
+
+            if (block.type === 'image') {
+              return (
+                <div key={block.id || idx} className="my-6 rounded-2xl border border-gray-150 p-2.5 bg-gray-50/50 flex flex-col items-center">
+                  <img 
+                    src={block.content} 
+                    alt={block.caption || 'Illustration Diagram'} 
+                    className="max-h-64 object-contain rounded-xl shadow-xs" 
+                    referrerPolicy="no-referrer"
+                    onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                  />
+                  {block.caption && (
+                    <p className="text-[10px] text-gray-400 font-bold mt-2 font-sans text-center">
+                      {block.caption}
+                    </p>
+                  )}
+                </div>
+              );
+            }
+
+            if (block.type === 'table') {
+              return (
+                <div key={block.id || idx} className="my-6 overflow-x-auto border border-gray-200 rounded-xl shadow-2xs bg-white">
+                  <table className="w-full text-left border-collapse text-[11px]">
+                    <tbody>
+                      {block.content.split('\n').filter(line => line.trim()).map((line, rIdx) => {
+                        const cells = line.split('|').map(c => c.trim());
+                        return (
+                          <tr key={rIdx} className={rIdx === 0 ? 'bg-gray-50 font-bold text-gray-700 border-b border-gray-200' : 'border-b border-gray-100 hover:bg-gray-50/30'}>
+                            {cells.map((cell, cIdx) => (
+                              <td key={cIdx} className="p-2 border-r border-gray-100 last:border-r-0">{cell}</td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            }
+
+            return null;
+          })}
+        </div>
+      );
+    }
+
+    // LEGACY FALLBACK
     const defaultText = test.passage || `The architectural marvel of coral reefs is built on tiny organisms known as coral polyps. Polyps secrete hard carbonate exoskeletons which support vast communities. However, ocean temperature rises of even 1.5°C disrupt the fragile symbiotic algae, leading to widespread bleaching events.\n\nHistorically, reefs have weathered numerous prehistoric thermal variations. However, the modern velocity of industrial climate change bypasses the adaptation curves of slow-growing deep sea reef builders. Immediate artificial shading, heat-resistant strain seeding, and localized carbon removal represent modern mitigation strategies.`;
     
     const paragraphs = defaultText.split(/\n\s*\n/);
@@ -255,7 +455,7 @@ export default function TestSession({
           <span className="font-mono text-xs font-extrabold text-rose-500 bg-rose-50 px-2 py-1 rounded-md mt-0.5" title={`Paragraph ${letterLabel}`}>
             {letterLabel}
           </span>
-          <p className="text-gray-700 leading-relaxed font-sans">
+          <p className="leading-relaxed font-sans flex-1">
             {highlightText(para, highlights)}
           </p>
         </div>
@@ -279,11 +479,38 @@ export default function TestSession({
     setNotificationToast(msg);
   };
 
+  // Dynamic Theme Styling mappings
+  let themeBg = 'bg-gray-50 text-gray-900';
+  let paneBg = 'bg-white text-gray-800';
+  let sidePaneBg = 'bg-gray-50 text-gray-700';
+  let borderCol = 'border-gray-200';
+  let headerBg = 'bg-white text-gray-900 border-gray-200';
+  let footerBg = 'bg-white text-gray-900 border-gray-200';
+  let textMuted = 'text-gray-500';
+
+  if (colorTheme === 'contrast') {
+    themeBg = 'bg-yellow-200 text-black';
+    paneBg = 'bg-yellow-100 text-black';
+    sidePaneBg = 'bg-yellow-200/90 text-black';
+    borderCol = 'border-yellow-400';
+    headerBg = 'bg-yellow-300 text-black border-yellow-400';
+    footerBg = 'bg-yellow-300 text-black border-yellow-400';
+    textMuted = 'text-yellow-950/80';
+  } else if (colorTheme === 'beige') {
+    themeBg = 'bg-[#f4ebd0] text-stone-900';
+    paneBg = 'bg-[#faf0e6] text-stone-800';
+    sidePaneBg = 'bg-[#fdf6e3]/70 text-stone-700';
+    borderCol = 'border-amber-200/50';
+    headerBg = 'bg-[#faf0e6] text-stone-900 border-amber-200/50';
+    footerBg = 'bg-[#faf0e6] text-stone-900 border-amber-200/50';
+    textMuted = 'text-stone-500';
+  }
+
   return (
-    <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col h-screen w-screen overflow-hidden font-sans select-none" id="ielts-exam-session-full">
+    <div className={`fixed inset-0 z-50 flex flex-col h-screen w-screen overflow-hidden font-sans select-text ${themeBg}`} id="ielts-exam-session-full">
       
       {/* 1. TOP HEADER (COMPACT & HIGH FIDELITY) */}
-      <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 z-10 shadow-xs shrink-0">
+      <header className={`h-14 flex items-center justify-between px-4 sm:px-6 z-10 shadow-xs shrink-0 border-b ${headerBg}`}>
         
         {/* Brand & Test Title */}
         <div className="flex items-center gap-2 sm:gap-3">
@@ -399,12 +626,13 @@ export default function TestSession({
                   </button>
 
                   {/* Text Size options in settings */}
-                  <div className="px-3.5 py-2 border-y border-gray-100 my-1 space-y-1.5 bg-gray-50/50">
+                  <div className="px-3.5 py-2 border-t border-gray-100 mt-1 space-y-1.5 bg-gray-50/50">
                     <span className="text-[9px] font-bold text-gray-400 uppercase">Passage Text Size:</span>
                     <div className="flex gap-1">
                       {(['small', 'medium', 'large'] as const).map((sz) => (
                         <button
                           key={sz}
+                          type="button"
                           onClick={() => setTextSize(sz)}
                           className={`flex-1 py-1 rounded-md text-[10px] font-extrabold uppercase border transition-all cursor-pointer ${
                             textSize === sz 
@@ -415,6 +643,51 @@ export default function TestSession({
                           {sz.slice(0, 3)}
                         </button>
                       ))}
+                    </div>
+                  </div>
+
+                  {/* Color theme options in settings */}
+                  <div className="px-3.5 py-2 border-t border-gray-150 space-y-1.5 bg-gray-50/50">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase">Screen Color Theme:</span>
+                    <div className="flex gap-1">
+                      {(['standard', 'contrast', 'beige'] as const).map((th) => (
+                        <button
+                          key={th}
+                          type="button"
+                          onClick={() => {
+                            setColorTheme(th);
+                            triggerToast(`Switched screen theme to ${th === 'contrast' ? 'High Contrast' : th === 'beige' ? 'Beige Contrast' : 'Standard Colors'}!`);
+                          }}
+                          className={`flex-1 py-1 rounded-md text-[9px] font-extrabold uppercase border transition-all cursor-pointer ${
+                            colorTheme === th 
+                              ? 'bg-rose-600 border-rose-600 text-white' 
+                              : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {th}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Volume options in settings */}
+                  <div className="px-3.5 py-2 border-t border-b border-gray-150 space-y-1.5 bg-gray-50/50">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase flex items-center justify-between">
+                      <span>Volume Control:</span>
+                      <span className="font-mono">{volume}%</span>
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <Volume2 className="h-3.5 w-3.5 text-gray-500 shrink-0" />
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="100" 
+                        value={volume} 
+                        onChange={(e) => {
+                          setVolume(parseInt(e.target.value));
+                        }}
+                        className="w-full h-1 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-rose-600" 
+                      />
                     </div>
                   </div>
 
@@ -574,10 +847,17 @@ export default function TestSession({
           </div>
         ) : (
           /* Reading & Listening Split Screens */
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-12 h-full overflow-hidden">
+          <div 
+            ref={containerRef}
+            className={`flex-1 flex flex-col md:flex-row h-full overflow-hidden ${isResizing ? 'cursor-col-resize select-none' : ''}`}
+          >
             
-            {/* LEFT COLUMN: SOURCE DATA (Passage / Audio Script) - 5 Cols */}
-            <div className="md:col-span-5 border-r border-gray-200 bg-white overflow-y-auto flex flex-col">
+            {/* LEFT COLUMN: SOURCE DATA (Passage / Audio Script) */}
+            <div 
+              style={{ width: isMobile ? '100%' : `${leftWidth}%` }}
+              className={`border-r overflow-y-auto flex flex-col h-full shrink-0 ${paneBg} ${borderCol}`}
+              onMouseUp={handleTextSelection}
+            >
               
               {/* Passage Banner Picture (IELTS portal touch) */}
               <div className="relative h-44 w-full shrink-0">
@@ -715,20 +995,25 @@ export default function TestSession({
             </div>
 
             {/* SEPARATOR DRAG INDICATOR (AUTHENTIC SIMULATION PORTAL LOOK) */}
-            <div className="hidden md:flex flex-col items-center justify-center relative w-[1px] bg-gray-200 z-10">
-              <div className="absolute flex flex-col gap-1 items-center justify-center h-10 w-6 bg-white border border-gray-200 text-gray-400 rounded-md shadow-xs hover:border-rose-400 hover:text-rose-500 transition-all cursor-ew-resize">
+            <div 
+              onMouseDown={() => setIsResizing(true)}
+              onTouchStart={() => setIsResizing(true)}
+              className={`hidden md:flex flex-col items-center justify-center relative w-1.5 ${borderCol} ${isResizing ? 'bg-rose-500' : 'bg-gray-200/80 hover:bg-rose-400'} z-20 cursor-col-resize select-none shrink-0 transition-colors`}
+              title="Drag horizontally to resize reading panels"
+            >
+              <div className="absolute flex flex-col gap-1 items-center justify-center h-10 w-6 bg-white border border-gray-200 text-gray-500 rounded-md shadow-md hover:border-rose-400 hover:text-rose-600 transition-all cursor-col-resize">
                 <span className="text-[8px] font-bold uppercase tracking-widest leading-none">&lt;</span>
                 <span className="text-[8px] font-bold uppercase tracking-widest leading-none">&gt;</span>
               </div>
             </div>
 
-            {/* RIGHT COLUMN: INTERACTIVE QUESTION VIEWER & INPUTS - 7 Cols */}
-            <div className="md:col-span-7 bg-gray-50 overflow-y-auto flex flex-col p-5 sm:p-6 text-left">
+            {/* RIGHT COLUMN: INTERACTIVE QUESTION VIEWER & INPUTS */}
+            <div className={`flex-1 overflow-y-auto flex flex-col p-5 sm:p-6 text-left ${sidePaneBg}`}>
               
               {/* Heading Panel */}
-              <div className="flex items-center justify-between border-b border-gray-200 pb-3 mb-5">
+              <div className={`flex items-center justify-between border-b pb-3 mb-5 ${borderCol}`}>
                 <span className="text-[10px] font-extrabold uppercase text-gray-400 tracking-wider">Candidate Response Panel</span>
-                <span className="text-[10px] text-gray-500 font-semibold bg-white border border-gray-200 px-2.5 py-1 rounded-lg shadow-2xs">
+                <span className={`text-[10px] font-bold bg-white border px-2.5 py-1 rounded-lg shadow-2xs ${borderCol}`}>
                   {answeredCount} of {activeQuestions.length} Completed
                 </span>
               </div>
@@ -799,7 +1084,19 @@ export default function TestSession({
                             Question {idx + 1}
                           </span>
                           <span className="text-[9px] font-bold text-gray-400 uppercase">
-                            • {q.type === 'MCQ' ? 'Multiple Choice' : q.type === 'MatchingHeadings' ? 'Matching Heading' : q.type === 'TrueFalseNotGiven' ? 'True/False/Not Given' : 'Fill in the blanks'}
+                            • {
+                              q.type === 'MCQ' ? 'Multiple Choice' :
+                              q.type === 'TrueFalseNotGiven' ? 'True/False/Not Given' :
+                              q.type === 'YesNoNotGiven' ? "Yes/No/Not Given" :
+                              q.type === 'MatchingInfo' ? 'Matching Information' :
+                              q.type === 'MatchingHeadings' ? 'Matching Paragraph Headings' :
+                              q.type === 'MatchingFeatures' ? 'Matching Features' :
+                              q.type === 'MatchingSentenceEndings' ? 'Matching Sentence Endings' :
+                              q.type === 'SentenceCompletion' ? 'Sentence Completion' :
+                              q.type === 'SummaryCompletion' ? 'Summary Completion' :
+                              q.type === 'DiagramCompletion' ? 'Diagram Label Completion' :
+                              q.type === 'ShortAnswer' ? 'Short-Answer' : 'Fill in the Blanks'
+                            }
                           </span>
                         </div>
                         
@@ -808,125 +1105,15 @@ export default function TestSession({
                           {q.questionText}
                         </h4>
 
-                        {/* MCQ WIDGET */}
-                        {q.type === 'MCQ' && q.options && (
-                          <div className="grid gap-2.5">
-                            {q.options.map((opt) => {
-                              const optCode = opt.charAt(0); // A, B, C, D
-                              const isSelected = userAnswers[q.id] === optCode;
+                        {/* Unified IELTS Question Renderer */}
+                        <QuestionRenderer
+                          question={q}
+                          value={userAnswers[q.id] || ''}
+                          onChange={(val) => {
+                            setUserAnswers(prev => ({ ...prev, [q.id]: val }));
+                          }}
+                        />
 
-                              return (
-                                <button
-                                  key={opt}
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setUserAnswers(prev => ({ ...prev, [q.id]: optCode }));
-                                  }}
-                                  className={`w-full text-left p-3 rounded-xl text-xs border transition-all flex items-center gap-3.5 cursor-pointer ${
-                                    isSelected
-                                      ? 'bg-rose-50/70 border-rose-400 text-rose-900 font-semibold shadow-2xs'
-                                      : 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50/70 hover:border-gray-300'
-                                  }`}
-                                >
-                                  {/* Letter Circle */}
-                                  <div className={`h-6 w-6 shrink-0 rounded-full border flex items-center justify-center font-bold text-xs transition-colors ${
-                                    isSelected
-                                      ? 'bg-rose-600 border-rose-600 text-white shadow-xs'
-                                      : 'bg-gray-50 border-gray-200 text-gray-500'
-                                  }`}>
-                                    {optCode}
-                                  </div>
-                                  <span className="leading-tight">{opt.slice(3)}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        {/* MATCHING HEADINGS WIDGET */}
-                        {q.type === 'MatchingHeadings' && q.headingOptions && (
-                          <div className="space-y-2 text-left">
-                            <span className="text-[9px] font-bold text-gray-400 uppercase block tracking-wider mb-1">Select paragraph heading:</span>
-                            <div className="grid gap-2">
-                              {q.headingOptions.map((heading) => {
-                                const headingCode = heading.split('.')[0].trim(); // i, ii, iii
-                                const isSelected = userAnswers[q.id] === headingCode;
-
-                                return (
-                                  <button
-                                    key={heading}
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setUserAnswers(prev => ({ ...prev, [q.id]: headingCode }));
-                                    }}
-                                    className={`w-full text-left p-2.5 rounded-xl text-xs border transition-all flex items-center justify-between cursor-pointer ${
-                                      isSelected
-                                        ? 'bg-rose-50 border-rose-400 text-rose-800 font-bold'
-                                        : 'bg-white border-gray-150 text-gray-600 hover:bg-gray-50'
-                                    }`}
-                                  >
-                                    <span>{heading}</span>
-                                    <div className={`h-4.5 w-4.5 rounded-full border flex items-center justify-center ${
-                                      isSelected ? 'bg-rose-600 border-rose-600 text-white' : 'border-gray-200 bg-gray-50'
-                                    }`}>
-                                      {isSelected && <Check className="h-2.5 w-2.5 stroke-[3]" />}
-                                    </div>
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* TRUE / FALSE / NOT GIVEN WIDGET */}
-                        {q.type === 'TrueFalseNotGiven' && (
-                          <div className="grid grid-cols-3 gap-2.5">
-                            {['True', 'False', 'Not Given'].map((opt) => {
-                              const isSelected = userAnswers[q.id] === opt;
-                              return (
-                                <button
-                                  key={opt}
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setUserAnswers(prev => ({ ...prev, [q.id]: opt }));
-                                  }}
-                                  className={`py-2.5 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer ${
-                                    isSelected
-                                      ? 'bg-rose-600 border-rose-600 text-white shadow-md'
-                                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-100'
-                                  }`}
-                                >
-                                  {opt}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        {/* BLANKS / SENTENCE COMPLETION WIDGET */}
-                        {q.type === 'Blanks' && (
-                          <div className="space-y-1.5 text-left">
-                            <span className="text-[9px] font-bold text-gray-400 uppercase block tracking-wider">Candidate Response Input:</span>
-                            <div className="relative">
-                              <input
-                                type="text"
-                                value={userAnswers[q.id] || ''}
-                                onChange={(e) => setUserAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                                onClick={(e) => e.stopPropagation()}
-                                placeholder="Type missing word(s)..."
-                                className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 pr-10 text-xs text-gray-800 outline-none transition-all focus:bg-white focus:border-rose-500 focus:ring-1 focus:ring-rose-500 shadow-inner font-mono font-bold"
-                              />
-                              {hasAnswer && (
-                                <span className="absolute inset-y-0 right-3 flex items-center text-emerald-500">
-                                  <Check className="h-4 w-4 stroke-[3]" />
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
                       </div>
                     );
                   })
@@ -969,11 +1156,11 @@ export default function TestSession({
       </main>
 
       {/* 4. BOTTOM NAVIGATION & PROGRESS BAR */}
-      <footer className="h-14 bg-white border-t border-gray-200 flex items-center justify-between px-4 sm:px-6 shrink-0 z-10 shadow-inner">
+      <footer className={`h-14 flex items-center justify-between px-4 sm:px-6 shrink-0 z-10 shadow-inner border-t ${footerBg}`}>
         
         {/* Left Side: answered count & visual indicator legend */}
         <div className="hidden lg:flex items-center gap-4">
-          <div className="bg-gray-50 text-gray-700 font-extrabold text-[11px] px-3 py-1.5 rounded-lg border border-gray-200">
+          <div className={`font-extrabold text-[11px] px-3 py-1.5 rounded-lg border bg-white/50 ${borderCol}`}>
             Passage Progress: <span className="text-rose-600">{answeredCount}</span> of {activeQuestions.length} Answered
           </div>
 
@@ -1073,28 +1260,82 @@ export default function TestSession({
       {/* FLOATING TEXT SELECTION HIGHLIGHT TOOLTIP */}
       {selectionBox && (
         <div 
-          className="fixed z-50 bg-gray-950 text-white text-[11px] font-bold px-3 py-2 rounded-xl shadow-2xl border border-gray-800 flex items-center gap-2.5 animate-in fade-in zoom-in-95 duration-150"
+          className="fixed z-50 bg-gray-950 text-white text-[11px] font-bold p-3 rounded-2xl shadow-2xl border border-gray-800 flex flex-col gap-2 animate-in fade-in zoom-in-95 duration-150 max-w-xs"
           style={{ 
             top: `${Math.max(10, selectionBox.y - window.scrollY)}px`, 
             left: `${Math.max(10, selectionBox.x - window.scrollX)}px` 
           }}
         >
           <span className="text-gray-400 max-w-[120px] truncate">"{selectionBox.text}"</span>
-          <button
-            onClick={() => handleAddHighlight(selectionBox.text)}
-            className="bg-yellow-400 hover:bg-yellow-300 text-gray-950 font-extrabold px-2.5 py-1 rounded-lg text-[10px] cursor-pointer flex items-center gap-1 transition-all"
-          >
-            Highlight
-          </button>
-          <button
-            onClick={() => {
-              setSelectionBox(null);
-              window.getSelection()?.removeAllRanges();
-            }}
-            className="text-gray-400 hover:text-white text-[10px] px-1.5 cursor-pointer"
-          >
-            Dismiss
-          </button>
+          {!showNoteForm ? (
+            <div className="flex items-center gap-1.5 mt-1 shrink-0">
+              <button
+                type="button"
+                onClick={() => handleAddHighlight(selectionBox.text, 'highlight')}
+                className="bg-yellow-400 hover:bg-yellow-300 text-gray-950 font-extrabold px-2 py-1 rounded-lg text-[10px] cursor-pointer transition-all"
+              >
+                Highlight
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAddHighlight(selectionBox.text, 'underline')}
+                className="bg-sky-500 hover:bg-sky-450 text-white font-extrabold px-2 py-1 rounded-lg text-[10px] cursor-pointer transition-all"
+              >
+                Underline
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowNoteForm(true)}
+                className="bg-gray-800 hover:bg-gray-750 text-white font-extrabold px-2 py-1 rounded-lg text-[10px] cursor-pointer transition-all"
+              >
+                ✍️ Add Note
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectionBox(null);
+                  window.getSelection()?.removeAllRanges();
+                }}
+                className="text-gray-400 hover:text-white font-bold text-[9px] px-1.5 cursor-pointer ml-auto"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5 text-left mt-1 w-full">
+              <span className="text-[8px] font-extrabold text-gray-400 uppercase tracking-widest">Type Note:</span>
+              <textarea
+                value={noteInput}
+                onChange={(e) => setNoteInput(e.target.value)}
+                placeholder="Type study notes here..."
+                rows={2}
+                className="w-full bg-gray-900 border border-gray-850 text-white text-[10px] font-medium p-1.5 rounded-lg outline-none focus:border-yellow-400 resize-none font-sans"
+              />
+              <div className="flex gap-1.5 justify-end mt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowNoteForm(false)}
+                  className="bg-gray-800 text-gray-350 px-2 py-1 rounded-md text-[9px] font-bold cursor-pointer hover:bg-gray-700"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddHighlight(selectionBox.text, 'highlight', noteInput)}
+                  className="bg-yellow-400 text-gray-950 px-2.5 py-1 rounded-md text-[9px] font-extrabold cursor-pointer hover:bg-yellow-300 animate-pulse"
+                >
+                  Save & Highlight
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddHighlight(selectionBox.text, 'underline', noteInput)}
+                  className="bg-sky-500 text-white px-2.5 py-1 rounded-md text-[9px] font-extrabold cursor-pointer hover:bg-sky-400"
+                >
+                  Save & Underline
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

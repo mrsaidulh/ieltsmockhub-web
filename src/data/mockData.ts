@@ -19,10 +19,14 @@ export const MOCK_TESTS: IELTSTest[] = [
     questionsCount: 40,
     attemptsCount: 14205,
     averageScore: 6.8,
-    difficulty: 'Medium',
     description: 'A full authentic Listening Mock Test consisting of four parts. Covers conversational english, educational discussions, and a scientific lecture.',
     sections: ['Part 1: Library Membership Registration', 'Part 2: National Park Guided Tour Guide', 'Part 3: Student Discussion on Microplastics', 'Part 4: Lecture on the History of Early Navigation'],
-    year: 2026
+    year: 2026,
+    bookNumber: 21,
+    testNumber: 1,
+    bookYear: 2026,
+    passageNumber: 1,
+    questionTypes: ['Blanks', 'MCQ', 'TrueFalseNotGiven']
   },
   {
     id: 'l2',
@@ -33,10 +37,14 @@ export const MOCK_TESTS: IELTSTest[] = [
     questionsCount: 40,
     attemptsCount: 8940,
     averageScore: 7.2,
-    difficulty: 'Easy',
     description: 'Standard General Training listening practice focusing on real-life transactional dialogues and public announcements.',
     sections: ['Part 1: Gym Membership Inquiry', 'Part 2: Workplace Safety Briefing', 'Part 3: Academic Tutor Feedback Session', 'Part 4: Presentation on Urban Gardening Initiatives'],
-    year: 2025
+    year: 2025,
+    bookNumber: 20,
+    testNumber: 2,
+    bookYear: 2025,
+    passageNumber: 1,
+    questionTypes: ['Blanks', 'MCQ']
   },
   {
     id: 'l3',
@@ -47,10 +55,14 @@ export const MOCK_TESTS: IELTSTest[] = [
     questionsCount: 20,
     attemptsCount: 5410,
     averageScore: 5.9,
-    difficulty: 'Hard',
     description: 'High-speed audio challenge aimed at band score 8+ aspirants. Focuses on dense note-taking and rapid speech pattern recognition.',
     sections: ['Part 1: Astrophysics Seminar Outline', 'Part 2: Structural Challenges of Skyscraper Engineering'],
-    year: 2026
+    year: 2026,
+    bookNumber: 21,
+    testNumber: 3,
+    bookYear: 2026,
+    passageNumber: 1,
+    questionTypes: ['MCQ']
   },
 
   // Reading Tests
@@ -63,10 +75,14 @@ export const MOCK_TESTS: IELTSTest[] = [
     questionsCount: 40,
     attemptsCount: 18450,
     averageScore: 6.2,
-    difficulty: 'Hard',
     description: 'A deep academic reading paper testing true comprehension of scientific articles. Includes True/False/Not Given, Flow-chart completion, and Paragraph matching.',
     sections: ['Passage 1: Biology and Evolution of Deep Sea Reefs', 'Passage 2: Economic Valuation of Coastal Ecosystems', 'Passage 3: Future Restoration Strategies and Marine Sanctuaries'],
-    year: 2026
+    year: 2026,
+    bookNumber: 21,
+    testNumber: 1,
+    bookYear: 2026,
+    passageNumber: 1,
+    questionTypes: ['MatchingHeadings', 'MCQ', 'TrueFalseNotGiven']
   },
   {
     id: 'r2',
@@ -77,10 +93,14 @@ export const MOCK_TESTS: IELTSTest[] = [
     questionsCount: 40,
     attemptsCount: 11200,
     averageScore: 7.4,
-    difficulty: 'Easy',
     description: 'General reading passages reflecting daily workplace booklets, travel instructions, and general knowledge notices.',
     sections: ['Section 1: Office Flexible Working Hours Policy', 'Section 2: Fire Evacuation Protocols', 'Section 3: The Rise and Fall of the Silk Road Trading Route'],
-    year: 2025
+    year: 2025,
+    bookNumber: 21,
+    testNumber: 2,
+    bookYear: 2025,
+    passageNumber: 1,
+    questionTypes: ['MCQ', 'TrueFalseNotGiven']
   },
   {
     id: 'r3',
@@ -91,10 +111,14 @@ export const MOCK_TESTS: IELTSTest[] = [
     questionsCount: 40,
     attemptsCount: 9320,
     averageScore: 6.5,
-    difficulty: 'Medium',
     description: 'Excellent practice test focusing on psychological principles in modern user interfaces and industrial engineering.',
     sections: ['Passage 1: Gestalt Principles of Human Visual Perception', 'Passage 2: User Interfaces and Cognitive Load Management', 'Passage 3: Case Study: Ergonomics in Autonomous Vehicle Cockpits'],
-    year: 2026
+    year: 2026,
+    bookNumber: 20,
+    testNumber: 1,
+    bookYear: 2026,
+    passageNumber: 1,
+    questionTypes: ['MatchingHeadings', 'MCQ']
   },
 
   // Writing Tests
@@ -107,10 +131,14 @@ export const MOCK_TESTS: IELTSTest[] = [
     questionsCount: 1,
     attemptsCount: 6810,
     averageScore: 6.4,
-    difficulty: 'Medium',
     description: 'Analyze, summarize, and report on trends shown in a line graph depicting global renewable energy investment from 2015 to 2025.',
     sections: ['Task 1: Write a report of at least 150 words describing the primary trends, differences, and key metrics in renewable energy use.'],
-    year: 2026
+    year: 2026,
+    bookNumber: 21,
+    testNumber: 1,
+    bookYear: 2026,
+    passageNumber: 1,
+    questionTypes: []
   },
   {
     id: 'w2',
@@ -121,10 +149,14 @@ export const MOCK_TESTS: IELTSTest[] = [
     questionsCount: 1,
     attemptsCount: 12450,
     averageScore: 6.1,
-    difficulty: 'Hard',
     description: 'Discuss both views and give your opinion on whether Generative AI technologies will ultimately empower or extinguish human-led creative professions.',
     sections: ['Task 2: Discuss the ethical, economical, and personal development factors. Write at least 250 words and justify with relevant examples.'],
-    year: 2026
+    year: 2026,
+    bookNumber: 21,
+    testNumber: 2,
+    bookYear: 2026,
+    passageNumber: 1,
+    questionTypes: []
   },
   {
     id: 'w3',
@@ -135,10 +167,14 @@ export const MOCK_TESTS: IELTSTest[] = [
     questionsCount: 1,
     attemptsCount: 4320,
     averageScore: 7.0,
-    difficulty: 'Easy',
     description: 'Draft an informal letter apologising to a close friend for missing a celebratory event due to an unexpected travel delay.',
     sections: ['Task 1: State clearly what happened, express genuine regret, and propose a specific plan to meet up and catch up in the near future.'],
-    year: 2024
+    year: 2024,
+    bookNumber: 20,
+    testNumber: 3,
+    bookYear: 2024,
+    passageNumber: 1,
+    questionTypes: []
   },
 
   // Speaking Tests
@@ -151,10 +187,14 @@ export const MOCK_TESTS: IELTSTest[] = [
     questionsCount: 3,
     attemptsCount: 7420,
     averageScore: 6.6,
-    difficulty: 'Medium',
     description: 'Simulated live Speaking interview testing rapid-response fluency, vocabulary range, and grammatical consistency.',
     sections: ['Part 1: Discussion on leisure time, hobbies, and digital devices', 'Part 2 Cue Card: Describe an old building or heritage structure you visited', 'Part 3: Analytical discussion on heritage preservation vs modernization'],
-    year: 2026
+    year: 2026,
+    bookNumber: 21,
+    testNumber: 1,
+    bookYear: 2026,
+    passageNumber: 1,
+    questionTypes: []
   },
   {
     id: 's2',
@@ -165,10 +205,14 @@ export const MOCK_TESTS: IELTSTest[] = [
     questionsCount: 4,
     attemptsCount: 3105,
     averageScore: 5.8,
-    difficulty: 'Hard',
     description: 'A rigorous conceptual dialogue aimed at band score 8+. Covers abstract social themes, global commerce, and ethical research.',
     sections: ['Part 1: Introductions and discussion about environmental responsibility', 'Part 2 Cue Card: Describe a historical choice made by your country', 'Part 3: Discussion on the future of international trade regulations'],
-    year: 2025
+    year: 2025,
+    bookNumber: 20,
+    testNumber: 4,
+    bookYear: 2025,
+    passageNumber: 1,
+    questionTypes: []
   }
 ];
 

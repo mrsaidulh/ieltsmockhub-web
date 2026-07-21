@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  Search, GraduationCap, LogOut, User 
+  Search, GraduationCap, LogOut, User, Sparkles
 } from 'lucide-react';
 import { UserProgress, StudentLead } from '../types';
 
@@ -37,6 +37,10 @@ export default function Header({
             <span className="font-mono text-[10px] font-semibold text-gray-400 tracking-wider uppercase">
               IELTSmockhub.com
             </span>
+          </div>
+          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 bg-rose-50 border border-rose-100/70 rounded-full text-[10px] font-black text-rose-700 uppercase tracking-widest ml-3">
+            <Sparkles className="h-3 w-3 text-rose-500 animate-pulse" />
+            <span>Learn, Practice, Test & Score</span>
           </div>
         </div>
 

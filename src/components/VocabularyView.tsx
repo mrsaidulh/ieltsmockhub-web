@@ -282,80 +282,137 @@ export default function VocabularyView({
               </button>
             </div>
 
-            {/* Flashcard container */}
-            <div className="min-h-52 flex items-center justify-center py-4">
+            {/* Flashcard container with 3D Flip */}
+            <div className="min-h-64 flex items-center justify-center py-6" style={{ perspective: '1000px' }}>
               <motion.div
                 key={currentCardIndex}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-sm"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+                className="w-full max-w-sm h-56 relative select-none"
+                style={{ transformStyle: 'preserve-3d' }}
               >
-                <div 
-                  onClick={() => setIsFlipped(!isFlipped)}
-                  className="bg-gray-800/80 hover:bg-gray-800 border border-gray-750 p-6 rounded-2xl min-h-44 flex flex-col justify-between cursor-pointer transition-all active:scale-[0.99] select-none"
+                <motion.div
+                  animate={{ rotateY: isFlipped ? 180 : 0 }}
+                  transition={{ duration: 0.4, ease: "easeInOut" }}
+                  style={{ transformStyle: 'preserve-3d' }}
+                  className="w-full h-full relative"
                 >
-                  <div className="flex justify-between items-start text-left">
-                    <span className="text-[9px] font-bold text-gray-500 uppercase font-mono">
-                      Card {currentCardIndex + 1} of {filteredList.length}
-                    </span>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                      filteredList[currentCardIndex].mastered 
-                        ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-800' 
-                        : 'bg-amber-900/40 text-amber-400 border border-amber-800'
-                    }`}>
-                      {filteredList[currentCardIndex].mastered ? 'Mastered' : 'Reviewing'}
-                    </span>
-                  </div>
+                  {/* Front Side */}
+                  <div 
+                    onClick={() => setIsFlipped(!isFlipped)}
+                    style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+                    className="absolute inset-0 bg-gray-800 hover:bg-gray-800/90 border border-gray-700/60 p-6 rounded-2xl flex flex-col justify-between cursor-pointer transition-all active:scale-[0.99] shadow-lg"
+                  >
+                    <div className="flex justify-between items-start text-left">
+                      <span className="text-[9px] font-bold text-gray-400 uppercase font-mono tracking-wider">
+                        Card {currentCardIndex + 1} of {filteredList.length}
+                      </span>
+                      <span className={`text-[9px] font-bold px-2.5 py-0.5 rounded-full ${
+                        filteredList[currentCardIndex].mastered 
+                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-800/40' 
+                          : 'bg-amber-950 text-amber-400 border border-amber-800/40'
+                      }`}>
+                        {filteredList[currentCardIndex].mastered ? 'Mastered' : 'Reviewing'}
+                      </span>
+                    </div>
 
-                  <div className="my-4 text-center">
-                    {!isFlipped ? (
-                      <h3 className="text-2xl font-extrabold text-white tracking-tight">
+                    <div className="my-2 text-center">
+                      <span className="text-[10px] font-bold text-rose-500 uppercase tracking-widest block mb-1">Academic Term</span>
+                      <h3 className="text-2xl font-black text-white tracking-tight break-words">
                         {filteredList[currentCardIndex].word}
                       </h3>
-                    ) : (
-                      <div className="space-y-2">
-                        <p className="text-xs text-gray-300 leading-normal font-sans italic">
-                          "{filteredList[currentCardIndex].definition}"
-                        </p>
-                        {filteredList[currentCardIndex].exampleSentence && (
-                          <p className="text-[11px] text-gray-400 font-serif leading-relaxed italic bg-gray-850/40 p-2.5 rounded-lg border border-gray-700/50">
-                            "{filteredList[currentCardIndex].exampleSentence}"
-                          </p>
-                        )}
-                      </div>
-                    )}
+                      {filteredList[currentCardIndex].sourceTestTitle && (
+                        <span className="text-[9px] text-gray-500 block mt-1.5 truncate">
+                          Source: {filteredList[currentCardIndex].sourceTestTitle}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-center text-[10px] text-gray-400 font-semibold tracking-widest flex items-center justify-center gap-1.5">
+                      <RotateCw className="h-3 w-3 animate-pulse text-rose-500" />
+                      <span>TAP TO FLIP</span>
+                    </div>
                   </div>
 
-                  <div className="text-center text-[10px] text-gray-500 font-bold tracking-widest flex items-center justify-center gap-1">
-                    <RotateCw className="h-3 w-3 animate-spin-slow" />
-                    <span>TAP TO FLIP</span>
+                  {/* Back Side (Rotated by 180 deg) */}
+                  <div 
+                    onClick={() => setIsFlipped(!isFlipped)}
+                    style={{ 
+                      backfaceVisibility: 'hidden', 
+                      WebkitBackfaceVisibility: 'hidden',
+                      transform: 'rotateY(180deg)' 
+                    }}
+                    className="absolute inset-0 bg-gray-850 hover:bg-gray-850/90 border border-gray-750 p-6 rounded-2xl flex flex-col justify-between cursor-pointer transition-all active:scale-[0.99] shadow-lg overflow-y-auto"
+                  >
+                    <div className="flex justify-between items-start text-left">
+                      <span className="text-[9px] font-bold text-gray-400 uppercase font-mono tracking-wider">
+                        Definition & Example
+                      </span>
+                      <span className="text-[9px] font-extrabold text-rose-400 uppercase">
+                        {filteredList[currentCardIndex].word}
+                      </span>
+                    </div>
+
+                    <div className="my-2 text-left space-y-2.5">
+                      <div className="space-y-1">
+                        <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Definition:</span>
+                        <p className="text-xs text-gray-200 leading-relaxed font-sans font-medium">
+                          {filteredList[currentCardIndex].definition}
+                        </p>
+                      </div>
+                      {filteredList[currentCardIndex].exampleSentence && (
+                        <div className="space-y-1">
+                          <span className="text-[9px] font-bold text-gray-500 uppercase tracking-wider block">Contextual Example:</span>
+                          <p className="text-[11px] text-gray-300 font-serif leading-relaxed italic bg-gray-900/50 p-2.5 rounded-xl border border-gray-800">
+                            "{filteredList[currentCardIndex].exampleSentence}"
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-center text-[10px] text-gray-400 font-semibold tracking-widest flex items-center justify-center gap-1.5">
+                      <RotateCw className="h-3 w-3 animate-pulse text-indigo-400" />
+                      <span>TAP TO FLIP BACK</span>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               </motion.div>
             </div>
 
             {/* Pagination / Cards navigation */}
-            <div className="flex items-center justify-center gap-4 border-t border-gray-800 pt-4 mt-2">
+            <div className="flex flex-wrap items-center justify-center gap-3 border-t border-gray-800 pt-5 mt-2">
               <button
                 onClick={handlePrevCard}
-                className="px-4 py-2 border border-gray-800 hover:border-gray-700 bg-gray-850 hover:bg-gray-800 text-xs rounded-xl font-bold transition-all"
+                className="px-4 py-2 border border-gray-800 hover:border-gray-700 bg-gray-850 hover:bg-gray-800 text-xs rounded-xl font-bold transition-all text-gray-300 flex items-center gap-1 cursor-pointer"
               >
                 Previous Card
               </button>
+
+              <button
+                onClick={() => setIsFlipped(!isFlipped)}
+                className="px-4 py-2 border border-rose-950 hover:border-rose-800 bg-rose-950 hover:bg-rose-900 text-rose-400 text-xs rounded-xl font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-inner"
+              >
+                <RotateCw className="h-3.5 w-3.5 animate-spin-slow" />
+                <span>{isFlipped ? 'Show Term' : 'Show Definition (Flip)'}</span>
+              </button>
+
               <button
                 onClick={() => onToggleMastery(filteredList[currentCardIndex].id)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   filteredList[currentCardIndex].mastered
                     ? 'bg-emerald-950 border border-emerald-900 text-emerald-400'
-                    : 'bg-rose-950 border border-rose-900 text-rose-400'
+                    : 'bg-gray-850 border border-gray-850 text-gray-300 hover:border-gray-800 hover:bg-gray-800'
                 }`}
               >
                 {filteredList[currentCardIndex].mastered ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
                 <span>{filteredList[currentCardIndex].mastered ? 'Mastered!' : 'Mark Mastered'}</span>
               </button>
+
               <button
                 onClick={handleNextCard}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-xs text-white rounded-xl font-bold transition-all shadow-md shadow-rose-900/30"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-xs text-white rounded-xl font-bold transition-all shadow-md shadow-rose-900/30 flex items-center gap-1 cursor-pointer"
               >
                 Next Card
               </button>

@@ -9,6 +9,7 @@ import {
 import { IELTSTest, StudentLead, IELTSQuestion } from '../types';
 import SpeakingPractice from './SpeakingPractice';
 import TestSession from './TestSession';
+import QuestionRenderer from './QuestionRenderer';
 import { MOCK_QUESTIONS_BY_TEST_ID } from '../data/mockQuestions';
 
 interface TestStartModalProps {
@@ -362,80 +363,13 @@ export default function TestStartModal({
                 
                 <p className="text-xs font-bold text-gray-800 leading-normal">{q.questionText}</p>
 
-                {/* MCQ Widget */}
-                {q.type === 'MCQ' && q.options && (
-                  <div className="grid gap-2">
-                    {q.options.map((opt) => {
-                      const optCode = opt.charAt(0);
-                      return (
-                        <button
-                          key={opt}
-                          onClick={() => setUserAnswers(prev => ({ ...prev, [q.id]: optCode }))}
-                          className={`w-full text-left p-2.5 rounded-xl text-xs font-medium border transition-all ${
-                            userAnswers[q.id] === optCode
-                              ? 'bg-rose-50 border-rose-500 text-rose-700 font-semibold'
-                              : 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50'
-                          }`}
-                        >
-                          {opt}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* Matching Headings Widget */}
-                {q.type === 'MatchingHeadings' && q.headingOptions && (
-                  <div className="grid gap-2">
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase">Select Correct Paragraph Heading:</p>
-                    {q.headingOptions.map((heading) => {
-                      const headingCode = heading.split('.')[0].trim();
-                      return (
-                        <button
-                          key={heading}
-                          onClick={() => setUserAnswers(prev => ({ ...prev, [q.id]: headingCode }))}
-                          className={`w-full text-left p-2 rounded-lg text-xs border transition-all ${
-                            userAnswers[q.id] === headingCode
-                              ? 'bg-rose-50 border-rose-500 text-rose-700 font-semibold'
-                              : 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50'
-                          }`}
-                        >
-                          {heading}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* True / False / Not Given Widget */}
-                {q.type === 'TrueFalseNotGiven' && (
-                  <div className="flex gap-2">
-                    {['True', 'False', 'Not Given'].map((opt) => (
-                      <button
-                        key={opt}
-                        onClick={() => setUserAnswers(prev => ({ ...prev, [q.id]: opt }))}
-                        className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
-                          userAnswers[q.id] === opt
-                            ? 'bg-rose-50 border-rose-500 text-rose-700'
-                            : 'bg-white border-gray-100 text-gray-600 hover:bg-gray-50'
-                        }`}
-                      >
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {/* Blanks Sentence Completion Widget */}
-                {q.type === 'Blanks' && (
-                  <input
-                    type="text"
-                    value={userAnswers[q.id] || ''}
-                    onChange={(e) => setUserAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                    placeholder="Type missing word(s)..."
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-700 outline-none transition-all focus:bg-white focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
-                  />
-                )}
+                <QuestionRenderer
+                  question={q}
+                  value={userAnswers[q.id] || ''}
+                  onChange={(val) => {
+                    setUserAnswers(prev => ({ ...prev, [q.id]: val }));
+                  }}
+                />
               </div>
             ))
           )}

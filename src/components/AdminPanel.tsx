@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { 
   Database, Plus, Trash2, Edit3, ArrowLeft, Check, AlertCircle, 
   HelpCircle, Volume2, BookOpen, PenTool, Mic, PlusCircle, MinusCircle, 
-  RefreshCw, FileText, LayoutGrid, Eye, EyeOff, Lock, Unlock, Settings
+  RefreshCw, FileText, LayoutGrid, Eye, EyeOff, Lock, Unlock, Settings,
+  ArrowUp, ArrowDown, Image as ImageIcon, Table as TableIcon
 } from 'lucide-react';
-import { IELTSTest, IELTSQuestion, TestCategory, TestType, DifficultyLevel, QuestionType } from '../types';
+import { IELTSTest, IELTSQuestion, TestCategory, TestType, QuestionType, PassageBlock } from '../types';
+import AdminTestManager from './AdminTestManager';
 
 interface AdminPanelProps {
   tests: IELTSTest[];
@@ -15,6 +17,21 @@ interface AdminPanelProps {
   onLogoutAdmin?: () => void;
 }
 
+const ALL_QUESTION_TYPES: QuestionType[] = [
+  'MCQ', 
+  'TrueFalseNotGiven', 
+  'YesNoNotGiven', 
+  'MatchingHeadings', 
+  'MatchingInfo', 
+  'MatchingFeatures', 
+  'MatchingSentenceEndings', 
+  'SentenceCompletion', 
+  'SummaryCompletion', 
+  'DiagramCompletion', 
+  'ShortAnswer',
+  'Blanks'
+];
+
 export default function AdminPanel({
   tests,
   onAddTest,
@@ -24,7 +41,7 @@ export default function AdminPanel({
   onLogoutAdmin
 }: AdminPanelProps) {
   // Navigation inside Admin Panel
-  const [viewMode, setViewMode] = useState<'list' | 'form'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'form' | 'test_manager'>('list');
   const [editingTestId, setEditingTestId] = useState<string | null>(null);
 
   // Form States - Core Metadata
@@ -32,11 +49,16 @@ export default function AdminPanel({
   const [category, setCategory] = useState<TestCategory>('reading');
   const [type, setType] = useState<TestType>('Academic');
   const [durationMinutes, setDurationMinutes] = useState<number>(60);
-  const [difficulty, setDifficulty] = useState<DifficultyLevel>('Medium');
   const [description, setDescription] = useState('');
+  const [year, setYear] = useState<number | ''>(2026);
+  const [bookNumber, setBookNumber] = useState<number | ''>('');
+  const [testNumber, setTestNumber] = useState<number | ''>('');
+  const [passageNumber, setPassageNumber] = useState<number | ''>(1);
+  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState<QuestionType[]>([]);
   
   // Custom Content Fields
   const [passage, setPassage] = useState('');
+  const [passageBlocks, setPassageBlocks] = useState<PassageBlock[]>([]);
   const [audioUrl, setAudioUrl] = useState('');
   const [audioScript, setAudioScript] = useState('');
   const [writingPrompt, setWritingPrompt] = useState('');
@@ -55,8 +77,9 @@ export default function AdminPanel({
   const [currentQType, setCurrentQType] = useState<QuestionType>('MCQ');
   const [currentQCorrect, setCurrentQCorrect] = useState('');
   const [currentQExplanation, setCurrentQExplanation] = useState('');
-  const [currentQOptions, setCurrentQOptions] = useState<string[]>(['A. ', 'B. ', 'C. ', 'D. ']);
-  const [currentQHeadings, setCurrentQHeadings] = useState<string[]>(['i. ', 'ii. ', 'iii. ', 'iv. ']);
+  const [currentQOptions, setCurrentQOptions] = useState<string[]>(['A. Option A', 'B. Option B', 'C. Option C', 'D. Option D']);
+  const [currentQHeadings, setCurrentQHeadings] = useState<string[]>(['i. Heading i', 'ii. Heading ii', 'iii. Heading iii', 'iv. Heading iv']);
+  const [currentQPassageNumber, setCurrentQPassageNumber] = useState<number>(1);
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
 
   const [formError, setFormError] = useState<string | null>(null);
@@ -69,13 +92,30 @@ export default function AdminPanel({
     setCategory(test.category);
     setType(test.type);
     setDurationMinutes(test.durationMinutes);
-    setDifficulty(test.difficulty);
     setDescription(test.description);
     setSectionsText(test.sections.join('\n'));
     setPassage(test.passage || '');
     setAudioUrl(test.audioUrl || '');
     setAudioScript(test.audioScript || '');
+    setYear(test.bookYear || test.year || 2026);
+    setBookNumber(test.bookNumber !== undefined ? test.bookNumber : '');
+    setTestNumber(test.testNumber !== undefined ? test.testNumber : '');
+    setPassageNumber(test.passageNumber || 1);
+    setSelectedQuestionTypes(test.questionTypes || []);
     
+    // Load passage blocks with high fidelity migration
+    if (test.passageBlocks && test.passageBlocks.length > 0) {
+      setPassageBlocks(test.passageBlocks);
+    } else {
+      const legacyText = test.passage || '';
+      const blocks = legacyText.split(/\n\s*\n/).map((para, idx) => ({
+        id: `block_${idx}_${Math.random().toString(36).substr(2, 4)}`,
+        type: 'paragraph' as const,
+        content: para,
+      }));
+      setPassageBlocks(blocks);
+    }
+
     if (test.category === 'writing') {
       setWritingPrompt(test.sections[0] || '');
     } else if (test.category === 'speaking') {
@@ -100,6 +140,18 @@ export default function AdminPanel({
     setDescription('');
     setSectionsText('');
     setPassage('');
+    setPassageBlocks([
+      {
+        id: 'b1',
+        type: 'heading',
+        content: 'Title of the Reading Passage'
+      },
+      {
+        id: 'b2',
+        type: 'paragraph',
+        content: 'Write the first paragraph of your reading passage here.'
+      }
+    ]);
     setAudioUrl('');
     setAudioScript('');
     setWritingPrompt('');
@@ -107,6 +159,11 @@ export default function AdminPanel({
     setSpeakingPart2('');
     setSpeakingPart3('');
     setQuestions([]);
+    setYear(2026);
+    setBookNumber('');
+    setTestNumber('');
+    setPassageNumber(1);
+    setSelectedQuestionTypes([]);
     resetQuestionBuilder();
     setFormError(null);
     setViewMode('form');
@@ -119,6 +176,7 @@ export default function AdminPanel({
     setCurrentQExplanation('');
     setCurrentQOptions(['A. Option A', 'B. Option B', 'C. Option C', 'D. Option D']);
     setCurrentQHeadings(['i. Heading i', 'ii. Heading ii', 'iii. Heading iii', 'iv. Heading iv']);
+    setCurrentQPassageNumber(1);
     setSelectedQuestionIndex(null);
   };
 
@@ -141,8 +199,11 @@ export default function AdminPanel({
       questionText: currentQText,
       correctAnswer: currentQCorrect.trim(),
       explanation: currentQExplanation.trim() || 'Predefined answers check verified.',
-      options: currentQType === 'MCQ' ? currentQOptions.filter(o => o.trim() !== '') : undefined,
-      headingOptions: currentQType === 'MatchingHeadings' ? currentQHeadings.filter(h => h.trim() !== '') : undefined
+      options: ['MCQ', 'MatchingInfo', 'MatchingFeatures', 'MatchingSentenceEndings', 'SummaryCompletion'].includes(currentQType)
+        ? currentQOptions.filter(o => o.trim() !== '')
+        : undefined,
+      headingOptions: currentQType === 'MatchingHeadings' ? currentQHeadings.filter(h => h.trim() !== '') : undefined,
+      passageNumber: currentQPassageNumber || 1
     };
 
     if (selectedQuestionIndex !== null) {
@@ -168,6 +229,7 @@ export default function AdminPanel({
     setCurrentQExplanation(q.explanation || '');
     if (q.options) setCurrentQOptions(q.options);
     if (q.headingOptions) setCurrentQHeadings(q.headingOptions);
+    setCurrentQPassageNumber(q.passageNumber || 1);
   };
 
   const handleDeleteQuestion = (index: number) => {
@@ -182,6 +244,46 @@ export default function AdminPanel({
 
     if (!title.trim()) {
       setFormError('Test Title is required.');
+      return;
+    }
+
+    if (year === '') {
+      setFormError('Book Year is required.');
+      return;
+    }
+    const yNum = Number(year);
+    if (isNaN(yNum) || yNum < 1980 || yNum > 2030) {
+      setFormError('Book Year must be a valid number between 1980 and 2030.');
+      return;
+    }
+
+    if (bookNumber === '') {
+      setFormError('Book Number is required.');
+      return;
+    }
+    const bNum = Number(bookNumber);
+    if (isNaN(bNum) || bNum < 1 || bNum > 21) {
+      setFormError('Book Number must be a valid number between 1 and 21.');
+      return;
+    }
+
+    if (testNumber === '') {
+      setFormError('Test Number is required.');
+      return;
+    }
+    const tNum = Number(testNumber);
+    if (isNaN(tNum) || tNum < 1 || tNum > 4) {
+      setFormError('Test Number must be a valid number between 1 and 4.');
+      return;
+    }
+
+    if (passageNumber === '') {
+      setFormError('Passage Number is required.');
+      return;
+    }
+    const pNum = Number(passageNumber);
+    if (isNaN(pNum) || pNum < 1 || pNum > 3) {
+      setFormError('Passage Number must be a valid number between 1 and 3.');
       return;
     }
 
@@ -210,13 +312,21 @@ export default function AdminPanel({
       questionsCount: category === 'writing' ? 1 : category === 'speaking' ? 3 : questions.length,
       attemptsCount: editingTestId ? (tests.find(t => t.id === editingTestId)?.attemptsCount || 0) : 0,
       averageScore: editingTestId ? (tests.find(t => t.id === editingTestId)?.averageScore || 7.0) : 7.0,
-      difficulty,
       description: description.trim() || `Authentic custom practice test designed for ${category} assessment.`,
       sections: resolvedSections,
       questions: category !== 'writing' && category !== 'speaking' ? questions : undefined,
-      passage: category === 'reading' ? passage.trim() : undefined,
+      passageBlocks: category === 'reading' ? passageBlocks : undefined,
+      passage: category === 'reading' ? passageBlocks.map(b => b.content).join('\n\n') : undefined,
       audioUrl: category === 'listening' ? audioUrl.trim() : undefined,
-      audioScript: category === 'listening' ? audioScript.trim() : undefined
+      audioScript: category === 'listening' ? audioScript.trim() : undefined,
+      bookYear: Number(year) || 2026,
+      year: Number(year) || 2026,
+      bookNumber: bookNumber !== '' ? Number(bookNumber) : 21,
+      testNumber: testNumber !== '' ? Number(testNumber) : 1,
+      passageNumber: Number(passageNumber) || 1,
+      questionTypes: selectedQuestionTypes.length > 0
+        ? selectedQuestionTypes
+        : (category !== 'writing' && category !== 'speaking' ? Array.from(new Set(questions.map(q => q.type))) : []) as QuestionType[]
     };
 
     if (editingTestId) {
@@ -228,6 +338,18 @@ export default function AdminPanel({
     setViewMode('list');
     setEditingTestId(null);
   };
+
+  if (viewMode === 'test_manager') {
+    return (
+      <AdminTestManager
+        tests={tests}
+        onAddTest={onAddTest}
+        onUpdateTest={onUpdateTest}
+        onDeleteTest={onDeleteTest}
+        onClose={() => setViewMode('list')}
+      />
+    );
+  }
 
   // Calculations for Admin Stats Panel
   const stats = {
@@ -275,6 +397,14 @@ export default function AdminPanel({
             >
               <RefreshCw className="h-3.5 w-3.5" />
               <span>Reset to Defaults</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('test_manager')}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-md shadow-indigo-100 transition-all active:scale-95 cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              <span>AdminTestManager (IELTS Reading)</span>
             </button>
             <button
               type="button"
@@ -359,7 +489,6 @@ export default function AdminPanel({
                   <tr className="bg-gray-50/75 text-gray-400 font-bold uppercase tracking-wider border-b border-gray-100">
                     <th className="px-4 py-3">IELTS Title & Category</th>
                     <th className="px-4 py-3">Mode Type</th>
-                    <th className="px-4 py-3">Difficulty</th>
                     <th className="px-4 py-3">Duration</th>
                     <th className="px-4 py-3">Questions</th>
                     <th className="px-4 py-3 text-right">Actions</th>
@@ -386,14 +515,6 @@ export default function AdminPanel({
                             test.type === 'Academic' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
                           }`}>
                             {test.type}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                            test.difficulty === 'Easy' ? 'bg-emerald-50 text-emerald-600' : 
-                            test.difficulty === 'Medium' ? 'bg-amber-50 text-amber-600' : 'bg-rose-50 text-rose-600'
-                          }`}>
-                            {test.difficulty}
                           </span>
                         </td>
                         <td className="px-4 py-3.5 font-semibold text-gray-600">{test.durationMinutes}m</td>
@@ -504,7 +625,60 @@ export default function AdminPanel({
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            {/* Cambridge IELTS tagging fields */}
+            <div className="bg-rose-50/20 p-3.5 rounded-2xl border border-rose-100/30 grid gap-4 grid-cols-2 sm:grid-cols-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-rose-700 uppercase">Book Year *</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 2026"
+                  value={year === '' ? '' : year}
+                  onChange={(e) => setYear(e.target.value !== '' ? Number(e.target.value) : '')}
+                  className="w-full rounded-xl border border-gray-200 bg-white p-2.5 text-xs text-gray-700 outline-none transition-all focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-rose-700 uppercase">Book Number (1-21) *</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 21"
+                  min={1}
+                  max={21}
+                  value={bookNumber === '' ? '' : bookNumber}
+                  onChange={(e) => setBookNumber(e.target.value !== '' ? Number(e.target.value) : '')}
+                  className="w-full rounded-xl border border-gray-200 bg-white p-2.5 text-xs text-gray-700 outline-none transition-all focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-rose-700 uppercase">Test Number (1-4) *</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 1"
+                  min={1}
+                  max={4}
+                  value={testNumber === '' ? '' : testNumber}
+                  onChange={(e) => setTestNumber(e.target.value !== '' ? Number(e.target.value) : '')}
+                  className="w-full rounded-xl border border-gray-200 bg-white p-2.5 text-xs text-gray-700 outline-none transition-all focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-rose-700 uppercase">Passage Number (1-3) *</label>
+                <input
+                  type="number"
+                  placeholder="e.g. 1"
+                  min={1}
+                  max={3}
+                  value={passageNumber === '' ? '' : passageNumber}
+                  onChange={(e) => setPassageNumber(e.target.value !== '' ? Number(e.target.value) : '')}
+                  className="w-full rounded-xl border border-gray-200 bg-white p-2.5 text-xs text-gray-700 outline-none transition-all focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-[11px] font-bold text-gray-500 uppercase">Duration (Minutes) *</label>
                 <input
@@ -517,19 +691,6 @@ export default function AdminPanel({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-gray-500 uppercase">Difficulty Level *</label>
-                <select
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value as DifficultyLevel)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-700 outline-none transition-all focus:bg-white focus:border-rose-500"
-                >
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5 md:col-span-1">
                 <label className="text-[11px] font-bold text-gray-500 uppercase">Questions Count Display</label>
                 <input
                   type="text"
@@ -550,6 +711,64 @@ export default function AdminPanel({
                 className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-700 outline-none transition-all focus:bg-white focus:border-rose-500"
               />
             </div>
+
+            {/* Question Types Tagging */}
+            {(category === 'reading' || category === 'listening') && (
+              <div className="space-y-2 border-t border-gray-100 pt-4 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-gray-600 uppercase tracking-wider block">Question Types Included</label>
+                  <span className="text-[10px] text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded border border-rose-100">
+                    {selectedQuestionTypes.length} Tagged
+                  </span>
+                </div>
+                <p className="text-[10px] text-gray-400">Tag this mock test with the specific question types it contains to enable precise drill-down filtering for students.</p>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {ALL_QUESTION_TYPES.map((typeOption) => {
+                    const isSelected = selectedQuestionTypes.includes(typeOption);
+                    const formattedLabel = 
+                      typeOption === 'MCQ' ? 'Multiple Choice (MCQ)' :
+                      typeOption === 'TrueFalseNotGiven' ? 'True/False/Not Given' :
+                      typeOption === 'YesNoNotGiven' ? 'Yes/No/Not Given' :
+                      typeOption === 'MatchingHeadings' ? 'Matching Headings' :
+                      typeOption === 'MatchingInfo' ? 'Matching Info' :
+                      typeOption === 'MatchingFeatures' ? 'Matching Features' :
+                      typeOption === 'MatchingSentenceEndings' ? 'Sentence Endings' :
+                      typeOption === 'SentenceCompletion' ? 'Sentence Completion' :
+                      typeOption === 'SummaryCompletion' ? 'Summary Completion' :
+                      typeOption === 'DiagramCompletion' ? 'Diagram/Flowchart' :
+                      typeOption === 'ShortAnswer' ? 'Short Answer' :
+                      typeOption === 'Blanks' ? 'Fill in the Blanks' : typeOption;
+
+                    return (
+                      <button
+                        key={typeOption}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedQuestionTypes(selectedQuestionTypes.filter(t => t !== typeOption));
+                          } else {
+                            setSelectedQuestionTypes([...selectedQuestionTypes, typeOption]);
+                          }
+                        }}
+                        className={`flex items-center gap-2 p-2 rounded-xl border text-[11px] font-semibold transition-all text-left cursor-pointer active:scale-95 ${
+                          isSelected 
+                            ? 'border-rose-500 bg-rose-50/70 text-rose-700 shadow-xs' 
+                            : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50/80'
+                        }`}
+                      >
+                        <div className={`h-3 w-3 rounded flex items-center justify-center border transition-all ${
+                          isSelected ? 'border-rose-500 bg-rose-500 text-white' : 'border-gray-300 bg-white'
+                        }`}>
+                          {isSelected && <span className="text-[8px] font-black leading-none">✓</span>}
+                        </div>
+                        <span className="truncate">{formattedLabel}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Part B: Real Content Input fields (Reading passage, Listening audio link, etc.) */}
@@ -557,24 +776,290 @@ export default function AdminPanel({
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Step 2: Authenticated Real Content</h3>
 
             {category === 'reading' && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="rounded-xl bg-rose-50/50 p-3.5 border border-rose-100/50 flex gap-2">
                   <BookOpen className="h-5 w-5 text-rose-500 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-xs font-bold text-rose-800">Reading Passage Content</h4>
-                    <p className="text-[10px] text-gray-400">Specify the primary paragraphs. Candidates will see this passage during their active reading simulator.</p>
+                    <h4 className="text-xs font-bold text-rose-800">Visual Page Block-Based Passage Editor</h4>
+                    <p className="text-[10px] text-gray-400">Design your mock passage block-by-block. Candidates will see paragraphs, images, tables, and subheadings formatted exactly as designed.</p>
                   </div>
                 </div>
-                <div className="space-y-1.5">
-                  <textarea
-                    placeholder="Type or paste the full IELTS Reading Article/Passage here..."
-                    value={passage}
-                    onChange={(e) => setPassage(e.target.value)}
-                    rows={8}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-xs text-gray-700 outline-none transition-all focus:bg-white focus:border-rose-500 font-sans leading-relaxed"
-                  />
+
+                {/* Stack of active Blocks */}
+                <div className="space-y-3">
+                  {passageBlocks.map((block, idx) => {
+                    const isHeading = block.type === 'heading';
+                    const isParagraph = block.type === 'paragraph';
+                    const isImage = block.type === 'image';
+                    const isTable = block.type === 'table';
+
+                    // Calculate paragraph letter label (only count paragraphs for labels like A, B, C...)
+                    let paraLetter = '';
+                    if (isParagraph) {
+                      let pCount = 0;
+                      for (let i = 0; i <= idx; i++) {
+                        if (passageBlocks[i].type === 'paragraph') pCount++;
+                      }
+                      paraLetter = String.fromCharCode(64 + pCount); // A, B, C...
+                    }
+
+                    return (
+                      <div 
+                        key={block.id} 
+                        className={`rounded-xl border p-3.5 bg-white transition-all hover:shadow-xs flex flex-col gap-3 ${
+                          isHeading ? 'border-l-4 border-l-blue-500 border-gray-150' :
+                          isParagraph ? 'border-l-4 border-l-rose-500 border-gray-150' :
+                          isImage ? 'border-l-4 border-l-purple-500 border-gray-150' :
+                          'border-l-4 border-l-teal-500 border-gray-150'
+                        }`}
+                      >
+                        {/* Block Header Toolbar */}
+                        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider pb-1.5 border-b border-gray-100">
+                          <div className="flex items-center gap-2">
+                            {isHeading && <span className="text-blue-600">✦ Heading Block</span>}
+                            {isParagraph && (
+                              <span className="text-rose-600">
+                                ✦ Paragraph Block {paraLetter && `[Labeled Paragraph ${paraLetter}]`}
+                              </span>
+                            )}
+                            {isImage && <span className="text-purple-600">✦ Image/Diagram Block</span>}
+                            {isTable && <span className="text-teal-600">✦ Structured Table Block</span>}
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            {/* Reordering and Delete Actions */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (idx === 0) return;
+                                const updated = [...passageBlocks];
+                                const temp = updated[idx];
+                                updated[idx] = updated[idx - 1];
+                                updated[idx - 1] = temp;
+                                setPassageBlocks(updated);
+                              }}
+                              disabled={idx === 0}
+                              className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-35 cursor-pointer"
+                              title="Move Up"
+                            >
+                              <ArrowUp className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (idx === passageBlocks.length - 1) return;
+                                const updated = [...passageBlocks];
+                                const temp = updated[idx];
+                                updated[idx] = updated[idx + 1];
+                                updated[idx + 1] = temp;
+                                setPassageBlocks(updated);
+                              }}
+                              disabled={idx === passageBlocks.length - 1}
+                              className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-35 cursor-pointer"
+                              title="Move Down"
+                            >
+                              <ArrowDown className="h-3 w-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setPassageBlocks(passageBlocks.filter(b => b.id !== block.id));
+                              }}
+                              className="p-1 rounded text-gray-400 hover:text-rose-600 hover:bg-rose-50 cursor-pointer"
+                              title="Delete Block"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Block Editors */}
+                        {isHeading && (
+                          <input
+                            type="text"
+                            placeholder="Enter section subheading..."
+                            value={block.content}
+                            onChange={(e) => {
+                              const updated = [...passageBlocks];
+                              updated[idx].content = e.target.value;
+                              setPassageBlocks(updated);
+                            }}
+                            className="w-full text-xs font-bold text-gray-800 border-none bg-gray-50/50 p-2 rounded-lg outline-none focus:bg-white"
+                          />
+                        )}
+
+                        {isParagraph && (
+                          <textarea
+                            placeholder="Enter paragraph text..."
+                            value={block.content}
+                            onChange={(e) => {
+                              const updated = [...passageBlocks];
+                              updated[idx].content = e.target.value;
+                              setPassageBlocks(updated);
+                            }}
+                            rows={3}
+                            className="w-full text-xs text-gray-700 leading-relaxed border-none bg-gray-50/50 p-2 rounded-lg outline-none focus:bg-white font-sans"
+                          />
+                        )}
+
+                        {isImage && (
+                          <div className="space-y-2">
+                            <div className="grid gap-2 md:grid-cols-2">
+                              <div className="space-y-1">
+                                <span className="text-[9px] font-bold text-gray-400 uppercase">Image/Diagram URL</span>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. https://images.unsplash.com/..."
+                                  value={block.content}
+                                  onChange={(e) => {
+                                    const updated = [...passageBlocks];
+                                    updated[idx].content = e.target.value;
+                                    setPassageBlocks(updated);
+                                  }}
+                                  className="w-full text-xs text-gray-700 border border-gray-150 bg-gray-50/30 p-1.5 rounded outline-none font-mono"
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <span className="text-[9px] font-bold text-gray-400 uppercase">Interactive Caption / Subtitle</span>
+                                <input
+                                  type="text"
+                                  placeholder="e.g. Figure 2.1: The internal structure of marine micro-polyps"
+                                  value={block.caption || ''}
+                                  onChange={(e) => {
+                                    const updated = [...passageBlocks];
+                                    updated[idx].caption = e.target.value;
+                                    setPassageBlocks(updated);
+                                  }}
+                                  className="w-full text-xs text-gray-700 border border-gray-150 bg-gray-50/30 p-1.5 rounded outline-none"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="flex gap-2 items-center">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...passageBlocks];
+                                  const presets = [
+                                    'https://images.unsplash.com/photo-1546026423-cc4642628d2b?w=800&auto=format&fit=crop&q=80',
+                                    'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?w=800&auto=format&fit=crop&q=80',
+                                    'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&auto=format&fit=crop&q=80'
+                                  ];
+                                  updated[idx].content = presets[idx % presets.length];
+                                  setPassageBlocks(updated);
+                                }}
+                                className="text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-100 px-2 py-1 rounded hover:bg-purple-100 transition-colors cursor-pointer"
+                              >
+                                ⚡ Load Sketch Preset
+                              </button>
+                              {block.content && (
+                                <div className="h-10 w-24 rounded border border-gray-150 bg-gray-50 overflow-hidden flex items-center justify-center shrink-0">
+                                  <img 
+                                    src={block.content} 
+                                    alt="Live Thumbnail Preview" 
+                                    className="h-full w-full object-cover"
+                                    referrerPolicy="no-referrer"
+                                    onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {isTable && (
+                          <div className="space-y-2">
+                            <span className="text-[9px] font-bold text-gray-400 uppercase block">Table Data (Format cells with pipe characters `|`)</span>
+                            <textarea
+                              placeholder="Header 1 | Header 2 | Header 3&#10;Value A1 | Value A2 | Value A3&#10;Value B1 | Value B2 | Value B3"
+                              value={block.content}
+                              onChange={(e) => {
+                                const updated = [...passageBlocks];
+                                updated[idx].content = e.target.value;
+                                setPassageBlocks(updated);
+                              }}
+                              rows={3}
+                              className="w-full text-xs font-mono text-gray-700 bg-gray-50/50 p-2 rounded-lg outline-none focus:bg-white"
+                            />
+
+                            {/* Simple Live Table Render Preview */}
+                            {block.content.trim() && (
+                              <div className="border border-teal-100/50 rounded-lg overflow-hidden text-[10px] text-gray-600 font-sans">
+                                <span className="bg-teal-50/30 text-teal-800 font-bold px-2 py-0.5 border-b border-teal-100/30 block uppercase tracking-wider text-[8px]">Live Builder Table Preview</span>
+                                <table className="w-full text-left border-collapse">
+                                  <tbody>
+                                    {block.content.split('\n').filter(line => line.trim()).map((line, rIdx) => {
+                                      const cells = line.split('|').map(c => c.trim());
+                                      return (
+                                        <tr key={rIdx} className={rIdx === 0 ? 'bg-gray-100/50 font-bold text-gray-700 border-b border-gray-200' : 'border-b border-gray-100 hover:bg-gray-50/40'}>
+                                          {cells.map((cell, cIdx) => (
+                                            <td key={cIdx} className="p-1.5 border-r border-gray-100 last:border-r-0">{cell}</td>
+                                          ))}
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="space-y-1.5">
+
+                {/* Blocks Toolbar Controls */}
+                <div className="flex flex-wrap gap-2 pt-2 border-t border-dashed border-gray-200 justify-center">
+                  <button
+                    type="button"
+                    onClick={() => setPassageBlocks([...passageBlocks, {
+                      id: `block_${Date.now()}_p`,
+                      type: 'paragraph',
+                      content: 'Type custom paragraph details here...'
+                    }])}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 bg-rose-50/30 text-rose-700 font-bold text-[10px] hover:bg-rose-50 hover:border-rose-300 transition-all cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> + Paragraph
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPassageBlocks([...passageBlocks, {
+                      id: `block_${Date.now()}_h`,
+                      type: 'heading',
+                      content: 'New Section Subheading'
+                    }])}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50/30 text-blue-700 font-bold text-[10px] hover:bg-blue-50 hover:border-blue-300 transition-all cursor-pointer"
+                  >
+                    <Plus className="h-3.5 w-3.5" /> + Subheading
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPassageBlocks([...passageBlocks, {
+                      id: `block_${Date.now()}_img`,
+                      type: 'image',
+                      content: 'https://images.unsplash.com/photo-1546026423-cc4642628d2b?w=800&auto=format&fit=crop&q=80',
+                      caption: 'Figure: Diagram illustration overview'
+                    }])}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-200 bg-purple-50/30 text-purple-700 font-bold text-[10px] hover:bg-purple-50 hover:border-purple-300 transition-all cursor-pointer"
+                  >
+                    <ImageIcon className="h-3.5 w-3.5" /> + Image/Diagram
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPassageBlocks([...passageBlocks, {
+                      id: `block_${Date.now()}_tbl`,
+                      type: 'table',
+                      content: 'Parameter | Normal Value | Adaptation Rate\nOcean Heat | <1.2 °C | Moderate\nAcid Density | 8.1 pH | Extremely slow'
+                    }])}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-teal-200 bg-teal-50/30 text-teal-700 font-bold text-[10px] hover:bg-teal-50 hover:border-teal-300 transition-all cursor-pointer"
+                  >
+                    <TableIcon className="h-3.5 w-3.5" /> + Structured Table
+                  </button>
+                </div>
+
+                {/* Legacy description sections/chapters text */}
+                <div className="space-y-1.5 pt-2">
                   <label className="text-[11px] font-bold text-gray-500 uppercase">Sections / Chapters (One per line)</label>
                   <textarea
                     placeholder="Passage 1: Biology and Evolution of Deep Sea Reefs&#10;Passage 2: Economic Restoration"
@@ -752,25 +1237,46 @@ export default function AdminPanel({
                         const nextType = e.target.value as QuestionType;
                         setCurrentQType(nextType);
                         // Sensible default correct answers based on type
-                        if (nextType === 'TrueFalseNotGiven') setCurrentQCorrect('True');
-                        else if (nextType === 'MatchingHeadings') setCurrentQCorrect('i');
-                        else if (nextType === 'MCQ') setCurrentQCorrect('A');
-                        else setCurrentQCorrect('');
+                        if (nextType === 'TrueFalseNotGiven') {
+                          setCurrentQCorrect('True');
+                        } else if (nextType === 'YesNoNotGiven') {
+                          setCurrentQCorrect('Yes');
+                        } else if (nextType === 'MatchingHeadings') {
+                          setCurrentQCorrect('i');
+                          setCurrentQHeadings(['i. Heading i', 'ii. Heading ii', 'iii. Heading iii', 'iv. Heading iv']);
+                        } else if (nextType === 'MCQ') {
+                          setCurrentQCorrect('A');
+                          setCurrentQOptions(['A. Option A', 'B. Option B', 'C. Option C', 'D. Option D']);
+                        } else if (['MatchingInfo', 'MatchingFeatures', 'MatchingSentenceEndings'].includes(nextType)) {
+                          setCurrentQCorrect('A');
+                          setCurrentQOptions(['A. Option A', 'B. Option B', 'C. Option C']);
+                        } else {
+                          setCurrentQCorrect('');
+                        }
                       }}
                       className="w-full rounded-xl border border-gray-200 bg-white p-2 text-xs text-gray-700 outline-none transition-all focus:border-rose-500"
                     >
-                      <option value="MCQ">Multiple Choice (MCQ)</option>
-                      <option value="TrueFalseNotGiven">True/False/Not Given</option>
-                      <option value="MatchingHeadings">Matching Paragraph Headings</option>
-                      <option value="Blanks">Fill in the Blanks</option>
+                      <option value="MCQ">1. Multiple Choice (MCQ)</option>
+                      <option value="TrueFalseNotGiven">2. Identifying Info (True/False/Not Given)</option>
+                      <option value="YesNoNotGiven">3. Writer's Views (Yes/No/Not Given)</option>
+                      <option value="MatchingInfo">4. Matching Information</option>
+                      <option value="MatchingHeadings">5. Matching Paragraph Headings</option>
+                      <option value="MatchingFeatures">6. Matching Features</option>
+                      <option value="MatchingSentenceEndings">7. Matching Sentence Endings</option>
+                      <option value="SentenceCompletion">8. Sentence Completion</option>
+                      <option value="SummaryCompletion">9. Summary/Note/Table Completion</option>
+                      <option value="DiagramCompletion">10. Diagram Label Completion</option>
+                      <option value="ShortAnswer">11. Short-Answer Questions</option>
                     </select>
                   </div>
                 </div>
 
-                {/* Subform: Multiple Choice details */}
-                {currentQType === 'MCQ' && (
+                {/* Subform: MCQ & Options-based types details */}
+                {['MCQ', 'MatchingInfo', 'MatchingFeatures', 'MatchingSentenceEndings', 'SummaryCompletion'].includes(currentQType) && (
                   <div className="space-y-2 bg-white p-3 rounded-xl border border-gray-100">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Set MCQ Choice Labels</span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                      Configure Options List (e.g. Scientist Names, Sentence Endings, Paragraph Keys)
+                    </span>
                     <div className="grid gap-2 md:grid-cols-2">
                       {currentQOptions.map((opt, idx) => (
                         <div key={idx} className="flex gap-2 items-center">
@@ -785,9 +1291,31 @@ export default function AdminPanel({
                             }}
                             className="flex-grow rounded-lg border border-gray-200 p-1.5 text-xs text-gray-700 outline-none focus:border-rose-500"
                           />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (currentQOptions.length > 2) {
+                                setCurrentQOptions(currentQOptions.filter((_, i) => i !== idx));
+                              }
+                            }}
+                            className="text-xs text-gray-300 hover:text-rose-500 font-bold"
+                            title="Remove row"
+                          >
+                            ×
+                          </button>
                         </div>
                       ))}
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const letter = String.fromCharCode(65 + currentQOptions.length);
+                        setCurrentQOptions([...currentQOptions, `${letter}. New Option`]);
+                      }}
+                      className="text-[10px] font-semibold text-rose-600 hover:underline flex items-center gap-1 mt-1"
+                    >
+                      <PlusCircle className="h-3 w-3" /> Add Option Row
+                    </button>
                   </div>
                 )}
 
@@ -823,7 +1351,21 @@ export default function AdminPanel({
                 )}
 
                 {/* Question grading inputs */}
-                <div className="grid gap-3 md:grid-cols-3 items-end">
+                <div className="grid gap-3 md:grid-cols-4 items-end">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase">Passage / Part Number *</label>
+                    <select
+                      value={currentQPassageNumber}
+                      onChange={(e) => setCurrentQPassageNumber(Number(e.target.value))}
+                      className="w-full rounded-xl border border-gray-200 bg-white p-2 text-xs text-gray-700 outline-none"
+                    >
+                      <option value={1}>Passage 1 / Part 1</option>
+                      <option value={2}>Passage 2 / Part 2</option>
+                      <option value={3}>Passage 3 / Part 3</option>
+                      <option value={4}>Passage 4 / Part 4</option>
+                    </select>
+                  </div>
+
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold text-gray-500 uppercase">Correct Answer *</label>
                     {currentQType === 'TrueFalseNotGiven' ? (
@@ -836,24 +1378,38 @@ export default function AdminPanel({
                         <option value="False">False</option>
                         <option value="Not Given">Not Given</option>
                       </select>
-                    ) : currentQType === 'MCQ' ? (
+                    ) : currentQType === 'YesNoNotGiven' ? (
                       <select
                         value={currentQCorrect}
                         onChange={(e) => setCurrentQCorrect(e.target.value)}
                         className="w-full rounded-xl border border-gray-200 bg-white p-2 text-xs text-gray-700 outline-none"
                       >
-                        <option value="A">A</option>
-                        <option value="B">B</option>
-                        <option value="C">C</option>
-                        <option value="D">D</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                        <option value="Not Given">Not Given</option>
+                      </select>
+                    ) : ['MCQ', 'MatchingInfo', 'MatchingFeatures', 'MatchingSentenceEndings'].includes(currentQType) ? (
+                      <select
+                        value={currentQCorrect}
+                        onChange={(e) => setCurrentQCorrect(e.target.value)}
+                        className="w-full rounded-xl border border-gray-200 bg-white p-2 text-xs text-gray-700 outline-none font-mono"
+                      >
+                        {currentQOptions.map((_, i) => {
+                          const code = String.fromCharCode(65 + i);
+                          return <option key={code} value={code}>{code}</option>;
+                        })}
                       </select>
                     ) : (
                       <input
                         type="text"
-                        placeholder={currentQType === 'MatchingHeadings' ? 'e.g. ii' : 'e.g. October'}
+                        placeholder={
+                          currentQType === 'MatchingHeadings' ? 'e.g. ii' :
+                          currentQType === 'SentenceCompletion' ? 'e.g. carbon footprint' :
+                          currentQType === 'DiagramCompletion' ? 'e.g. marine micro-polyp' : 'e.g. solar energy'
+                        }
                         value={currentQCorrect}
                         onChange={(e) => setCurrentQCorrect(e.target.value)}
-                        className="w-full rounded-xl border border-gray-200 bg-white p-2 text-xs text-gray-700 outline-none focus:border-rose-500 font-mono"
+                        className="w-full rounded-xl border border-gray-200 bg-white p-2 text-xs text-gray-700 outline-none focus:border-rose-500 font-mono font-bold"
                       />
                     )}
                   </div>
@@ -862,7 +1418,7 @@ export default function AdminPanel({
                     <label className="text-[10px] font-bold text-gray-500 uppercase">Teacher explanation/commentary</label>
                     <input
                       type="text"
-                      placeholder="e.g. The narrator highlights how early sailors relied on stars..."
+                      placeholder="e.g. Paragraph B details this adaptation explicitly..."
                       value={currentQExplanation}
                       onChange={(e) => setCurrentQExplanation(e.target.value)}
                       className="w-full rounded-xl border border-gray-200 bg-white p-2 text-xs text-gray-700 outline-none focus:border-rose-500"
