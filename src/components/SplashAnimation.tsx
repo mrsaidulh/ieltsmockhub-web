@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Target, BookOpen, Award, CheckCircle2, ChevronRight, Zap } from 'lucide-react';
+import { Target, BookOpen, Award, Zap } from 'lucide-react';
 
 interface SplashAnimationProps {
   onComplete: () => void;
@@ -63,21 +63,6 @@ export default function SplashAnimation({ onComplete }: SplashAnimationProps) {
       </div>
 
       <div className="relative z-10 max-w-2xl w-full px-6 text-center space-y-8">
-        {/* App Logo/Header Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: -20, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl"
-        >
-          <div className="h-7 w-7 rounded-lg bg-gradient-to-tr from-rose-500 to-amber-500 flex items-center justify-center text-white shadow-md">
-            <Sparkles className="h-4 w-4 animate-pulse" />
-          </div>
-          <span className="text-xs font-bold uppercase tracking-widest text-gray-300">
-            IELTS Assessment Platform
-          </span>
-        </motion.div>
-
         {/* Main Headline Animated Words */}
         <div className="py-2 space-y-4">
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
@@ -133,8 +118,8 @@ export default function SplashAnimation({ onComplete }: SplashAnimationProps) {
           ))}
         </motion.div>
 
-        {/* Animated Loading Bar & Skip Action */}
-        <div className="pt-6 space-y-3 max-w-xs mx-auto">
+        {/* Animated Loading Bar */}
+        <div className="pt-6 max-w-xs mx-auto">
           <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden p-0.5">
             <motion.div
               initial={{ width: "0%" }}
@@ -143,13 +128,6 @@ export default function SplashAnimation({ onComplete }: SplashAnimationProps) {
               className="h-full bg-gradient-to-r from-blue-500 via-rose-500 to-amber-400 rounded-full"
             />
           </div>
-
-          <button
-            onClick={onComplete}
-            className="text-[11px] text-gray-500 hover:text-gray-300 font-semibold tracking-wider uppercase transition-colors cursor-pointer"
-          >
-            Skip to App →
-          </button>
         </div>
       </div>
     </motion.div>
