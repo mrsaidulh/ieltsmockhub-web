@@ -383,9 +383,9 @@ export default function TestSession({
                       {isUnderline ? 'Blue Underline' : 'Yellow Highlight'} {hObj.note && '• Notes attached'}
                     </span>
                     {hObj.note ? (
-                      <p className="text-gray-100 font-sans mb-2 italic bg-gray-900 p-1.5 rounded-lg border border-gray-800">"{hObj.note}"</p>
+                      <span className="text-gray-100 font-sans mb-2 italic bg-gray-900 p-1.5 rounded-lg border border-gray-800 block">"{hObj.note}"</span>
                     ) : (
-                      <p className="text-gray-400 mb-2">No custom note attached.</p>
+                      <span className="text-gray-400 mb-2 block">No custom note attached.</span>
                     )}
                     <button
                       type="button"
@@ -441,9 +441,9 @@ export default function TestSession({
                   <span className="font-mono text-[11px] font-extrabold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md mt-0.5" title={`Paragraph ${letterLabel}`}>
                     {letterLabel}
                   </span>
-                  <p className="leading-relaxed font-sans flex-1">
+                  <div className="leading-relaxed font-sans flex-1">
                     {highlightText(block.content, highlights)}
-                  </p>
+                  </div>
                 </div>
               );
             }
@@ -506,9 +506,9 @@ export default function TestSession({
           <span className="font-mono text-xs font-extrabold text-rose-500 bg-rose-50 px-2 py-1 rounded-md mt-0.5" title={`Paragraph ${letterLabel}`}>
             {letterLabel}
           </span>
-          <p className="leading-relaxed font-sans flex-1">
+          <div className="leading-relaxed font-sans flex-1">
             {highlightText(para, highlights)}
-          </p>
+          </div>
         </div>
       );
     });

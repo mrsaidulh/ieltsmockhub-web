@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  Search, GraduationCap, LogOut, User, Sparkles
+  Search, GraduationCap, LogOut, User
 } from 'lucide-react';
 import { UserProgress, StudentLead } from '../types';
 
@@ -14,12 +14,14 @@ interface HeaderProps {
   onVerifyUser: (lead: StudentLead) => void;
   showAuthModal: boolean;
   setShowAuthModal: (show: boolean) => void;
+  onOpenStudentProfile?: () => void;
 }
 
 export default function Header({
   currentUser,
   onLogout,
   setShowAuthModal,
+  onOpenStudentProfile,
 }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-gray-100 bg-white/95 backdrop-blur-md">
@@ -37,10 +39,6 @@ export default function Header({
             <span className="font-mono text-[10px] font-semibold text-gray-400 tracking-wider uppercase">
               IELTSmockhub.com
             </span>
-          </div>
-          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 bg-rose-50 border border-rose-100/70 rounded-full text-[10px] font-black text-rose-700 uppercase tracking-widest ml-3">
-            <Sparkles className="h-3 w-3 text-rose-500 animate-pulse" />
-            <span>Learn, Practice, Test & Score</span>
           </div>
         </div>
 
@@ -65,13 +63,20 @@ export default function Header({
           <div className="flex items-center gap-2">
             {currentUser && currentUser.verified ? (
               <>
-                <div className="relative h-8 w-8 rounded-full bg-rose-100 ring-2 ring-rose-500/20 flex items-center justify-center text-rose-700 font-bold text-xs uppercase" title={currentUser.name}>
-                  {currentUser.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                </div>
-                <div className="hidden flex-col md:flex text-left">
-                  <span className="text-xs font-semibold text-gray-900 max-w-[100px] truncate">{currentUser.name}</span>
-                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-100">Verified Student</span>
-                </div>
+                <button
+                  type="button"
+                  onClick={onOpenStudentProfile}
+                  className="flex items-center gap-2 group cursor-pointer text-left rounded-xl hover:bg-gray-50 p-1 transition-colors"
+                  title="View Student Profile & Performance"
+                >
+                  <div className="relative h-8 w-8 rounded-full bg-rose-100 ring-2 ring-rose-500/20 flex items-center justify-center text-rose-700 font-bold text-xs uppercase group-hover:scale-105 transition-transform">
+                    {currentUser.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  </div>
+                  <div className="hidden flex-col md:flex text-left">
+                    <span className="text-xs font-semibold text-gray-900 max-w-[100px] truncate group-hover:text-rose-600 transition-colors">{currentUser.name}</span>
+                    <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-100">Verified Student</span>
+                  </div>
+                </button>
                 <button 
                   onClick={onLogout}
                   className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors ml-1 cursor-pointer"

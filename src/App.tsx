@@ -13,6 +13,8 @@ import TestStartModal from './components/TestStartModal';
 import VocabularyView from './components/VocabularyView';
 import AdminPanel from './components/AdminPanel';
 import StudentAuthModal from './components/StudentAuthModal';
+import StudentProfileModal from './components/StudentProfileModal';
+import SplashAnimation from './components/SplashAnimation';
 import { 
   INITIAL_USER_PROGRESS, MOCK_TESTS, 
   MOCK_ATTEMPT_HISTORY, MOCK_BAND_PROGRESS 
@@ -21,6 +23,9 @@ import { INITIAL_REGISTERED_STUDENTS } from './data/mockUserData';
 import { IELTSTest, TestCategory, TestType, AttemptHistory, BandProgressPoint, VocabularyWord, StudentLead } from './types';
 
 export default function App() {
+  // Website Load Splash Animation state
+  const [showSplash, setShowSplash] = useState(true);
+
   // Global States
   const [progress, setProgress] = useState(INITIAL_USER_PROGRESS);
   const [recentAttempts, setRecentAttempts] = useState<AttemptHistory[]>(MOCK_ATTEMPT_HISTORY);
@@ -32,6 +37,7 @@ export default function App() {
   const [completedTestIds, setCompletedTestIds] = useState<string[]>(['r1', 'l1']);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
 
   // Admin authentication and privileges
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
@@ -360,6 +366,7 @@ export default function App() {
         onVerifyUser={handleVerifyUser}
         showAuthModal={showAuthModal}
         setShowAuthModal={setShowAuthModal}
+        onOpenStudentProfile={() => setShowProfileModal(true)}
       />
 
       {/* IELTS standard navigation menu */}
@@ -615,6 +622,25 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Student Profile & Stats Modal */}
+      <AnimatePresence>
+        {showProfileModal && (
+          <StudentProfileModal
+            isOpen={showProfileModal}
+            onClose={() => setShowProfileModal(false)}
+            currentUser={currentUser}
+            progress={progress}
+            recentAttempts={recentAttempts}
+            streakIncremented={streakIncremented}
+            onClaimStreak={handleClaimStreak}
+            onLogout={() => {
+              handleLogout();
+              setShowProfileModal(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Floating Interactive Notification Toast */}
       <AnimatePresence>
         {toastMessage && (
@@ -633,6 +659,13 @@ export default function App() {
               <X className="h-4 w-4" />
             </button>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Website Loading Splash Animation */}
+      <AnimatePresence>
+        {showSplash && (
+          <SplashAnimation onComplete={() => setShowSplash(false)} />
         )}
       </AnimatePresence>
     </div>

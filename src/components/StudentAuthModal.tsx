@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { 
   X, Smartphone, Key, GraduationCap, UserCheck, 
-  Eye, EyeOff, Lock
+  Eye, EyeOff, Lock, HelpCircle
 } from 'lucide-react';
 import { StudentLead } from '../types';
 
@@ -402,11 +402,23 @@ export default function StudentAuthModal({
                 )}
               </button>
 
-              {/* Hint Box */}
-              <div className="rounded-xl bg-gray-50 p-2.5 border border-gray-150 text-[10px] text-gray-500 leading-normal text-left">
-                <span className="font-bold text-rose-600 block mb-0.5">Demo Credentials:</span>
-                Mobile: <strong className="font-mono text-gray-700">01340861415</strong><br />
-                Password: <strong className="font-mono text-gray-700">IELTSRevolution</strong>
+              {/* Support Contact */}
+              <div className="rounded-xl bg-gray-50/90 p-3 border border-gray-150 text-[10px] text-gray-600 leading-relaxed text-left flex items-start gap-2">
+                <HelpCircle className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="space-y-0.5">
+                  <p className="font-semibold text-gray-800">Facing difficulties or require assistance?</p>
+                  <p className="text-gray-500">
+                    Reach out to Support on WhatsApp:{' '}
+                    <a 
+                      href="https://wa.me/8801340861415" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="font-bold text-emerald-700 hover:text-emerald-800 hover:underline inline-flex items-center gap-1 font-mono"
+                    >
+                      01340861415
+                    </a>
+                  </p>
+                </div>
               </div>
             </form>
           ) : isVerifyingRegPhone ? (
