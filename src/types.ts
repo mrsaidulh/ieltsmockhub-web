@@ -9,6 +9,11 @@ export interface StudentLead {
   verified: boolean;
   otpSent?: boolean;
   password?: string;
+  createdAt?: string; // YYYY-MM-DD
+  lastActiveDate?: string; // YYYY-MM-DD
+  testsCompletedCount?: number;
+  lastTestDate?: string; // YYYY-MM-DD
+  reminderSentDate?: string; // YYYY-MM-DD
 }
 
 export type QuestionType = 
@@ -76,6 +81,36 @@ export interface UserProgress {
   lastPracticeDate: string;
 }
 
+export interface CriterionDetail {
+  score: number; // Band score 0.0 - 9.0
+  reason: string; // Justification for the awarded band score
+  advice: string; // Specific recommendation on how to reach the next band score
+}
+
+export interface WritingEvaluation {
+  taskAchievement: CriterionDetail; // Task Achievement (Task 1) or Task Response (Task 2) [25%]
+  coherenceCohesion: CriterionDetail; // Coherence & Cohesion (CC) [25%]
+  lexicalResource: CriterionDetail; // Lexical Resource (LR) [25%]
+  grammaticalRangeAccuracy: CriterionDetail; // Grammatical Range & Accuracy (GRA) [25%]
+  overallBand: number; // Average of 4 criteria rounded to nearest 0.5
+  evaluatorType?: 'AI' | 'Instructor' | 'Official Examiner';
+  evaluatorName?: string;
+  evaluatedAt?: string;
+  generalAdvice?: string;
+}
+
+export interface SpeakingEvaluation {
+  fluencyCoherence: CriterionDetail; // Fluency & Coherence (FC) [25%]
+  lexicalResource: CriterionDetail; // Lexical Resource (LR) [25%]
+  grammaticalRangeAccuracy: CriterionDetail; // Grammatical Range & Accuracy (GRA) [25%]
+  pronunciation: CriterionDetail; // Pronunciation (P) [25%]
+  overallBand: number; // Average of 4 criteria rounded to nearest 0.5
+  evaluatorType?: 'AI' | 'Instructor' | 'Official Examiner';
+  evaluatorName?: string;
+  evaluatedAt?: string;
+  generalAdvice?: string;
+}
+
 export interface AttemptHistory {
   id: string;
   testId: string;
@@ -87,6 +122,8 @@ export interface AttemptHistory {
   totalQuestions?: number;
   timeSpentMinutes: number;
   examinerFeedback?: string;
+  writingEvaluation?: WritingEvaluation;
+  speakingEvaluation?: SpeakingEvaluation;
   userAnswers?: Record<string, string>; // Maps questionId -> answer
 }
 

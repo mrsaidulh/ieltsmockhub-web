@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, ChevronLeft, ChevronRight, Clock, Sparkles, BookOpen, PenTool, 
-  Volume2, PlayCircle, PauseCircle, Maximize2, Share2, AlertTriangle, 
+  Volume2, PlayCircle, PauseCircle, Maximize2, Minimize2, Share2, AlertTriangle, 
   Download, Save, FileText, Check, HelpCircle, Settings, Sliders, Play, Flag, Trash2
 } from 'lucide-react';
 import { IELTSTest, IELTSQuestion } from '../types';
 import SpeakingPractice from './SpeakingPractice';
 import QuestionRenderer from './QuestionRenderer';
+import AssessmentScorecard from './AssessmentScorecard';
 
 interface TestSessionProps {
   test: IELTSTest;
@@ -62,6 +63,41 @@ export default function TestSession({
   const [flaggedQuestions, setFlaggedQuestions] = useState<string[]>([]);
   const [selectionBox, setSelectionBox] = useState<{ x: number; y: number; text: string } | null>(null);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [isFocusMode, setIsFocusMode] = useState(false);
+
+  // Focus Mode Fullscreen Change Listener
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFocusMode(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFocusMode = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        const container = document.getElementById('ielts-exam-session-full') || document.documentElement;
+        if (container.requestFullscreen) {
+          await container.requestFullscreen();
+        }
+        setIsFocusMode(true);
+        triggerToast("Focus Mode Enabled — Full screen active for distraction-free practice!");
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+        setIsFocusMode(false);
+        triggerToast("Focus Mode Disabled.");
+      }
+    } catch (err) {
+      setIsFocusMode(prev => {
+        const next = !prev;
+        triggerToast(next ? "Focus Mode Enabled — Distraction-free view active" : "Focus Mode Disabled");
+        return next;
+      });
+    }
+  };
 
   // Container reference for draggable partition
   const containerRef = useRef<HTMLDivElement>(null);
@@ -582,6 +618,24 @@ export default function TestSession({
             </div>
           </div>
 
+          {/* FOCUS MODE TOGGLE BUTTON */}
+          <button
+            onClick={toggleFocusMode}
+            className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1.5 rounded-lg border transition-all cursor-pointer ${
+              isFocusMode
+                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 border-indigo-600 text-white shadow-xs ring-2 ring-indigo-200'
+                : 'bg-white border-gray-200 text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200'
+            }`}
+            title={isFocusMode ? "Exit Full-Screen Focus Mode" : "Enter Full-Screen Focus Mode"}
+          >
+            {isFocusMode ? (
+              <Minimize2 className="h-3.5 w-3.5" />
+            ) : (
+              <Maximize2 className="h-3.5 w-3.5 text-indigo-600" />
+            )}
+            <span className="hidden sm:inline">{isFocusMode ? 'Exit Focus' : 'Focus Mode'}</span>
+          </button>
+
           {/* Scratchpad Trigger */}
           <button
             onClick={() => setShowScratchpad(!showScratchpad)}
@@ -617,6 +671,22 @@ export default function TestSession({
                   <div className="px-3 py-1.5 border-b border-gray-100 mb-1">
                     <span className="text-[9px] font-extrabold uppercase text-gray-400 tracking-wider">Configure Workspace</span>
                   </div>
+
+                  <button
+                    onClick={() => {
+                      toggleFocusMode();
+                      setShowSettingsDropdown(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-xs text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors flex items-center justify-between cursor-pointer border-b border-gray-100"
+                  >
+                    <div className="flex items-center gap-2">
+                      {isFocusMode ? <Minimize2 className="h-3.5 w-3.5 text-indigo-600" /> : <Maximize2 className="h-3.5 w-3.5 text-indigo-600" />}
+                      <span>{isFocusMode ? 'Exit Focus Mode' : 'Focus Mode'}</span>
+                    </div>
+                    <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600">
+                      {isFocusMode ? 'ON' : 'OFF'}
+                    </span>
+                  </button>
 
                   <button
                     onClick={() => {
@@ -784,6 +854,20 @@ export default function TestSession({
         </div>
       </header>
 
+      {/* Focus Mode Banner Notification when Full Screen / Focus Mode is active */}
+      {isFocusMode && (
+        <div className="bg-gradient-to-r from-indigo-900 via-purple-900 to-indigo-900 text-white text-[10px] font-extrabold uppercase tracking-widest py-1.5 px-4 text-center flex items-center justify-center gap-2 shadow-inner shrink-0 border-b border-indigo-700/50">
+          <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span>Focus Mode Active — Distraction-Free High-Stakes Exam Environment</span>
+          <button
+            onClick={toggleFocusMode}
+            className="ml-3 underline hover:text-indigo-200 cursor-pointer text-[9px] font-bold"
+          >
+            [ Exit Focus ]
+          </button>
+        </div>
+      )}
+
       {/* 2. SPLIT INTERFACE PANEL MAIN BODY */}
       <main className="flex-1 flex overflow-hidden relative">
         
@@ -856,8 +940,17 @@ export default function TestSession({
                 value={writingEssay}
                 onChange={(e) => setWritingEssay(e.target.value)}
                 placeholder="Begin writing your academic essay response here. IELTS Mock Hub will perform real-time counts, grammars checklist, and band projection checks on submit..."
-                className="flex-1 w-full rounded-2xl border border-gray-200 bg-white p-5 text-xs text-gray-800 outline-none transition-all placeholder:text-gray-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 shadow-inner font-sans leading-relaxed resize-none overflow-y-auto"
+                className="h-64 w-full rounded-2xl border border-gray-200 bg-white p-5 text-xs text-gray-800 outline-none transition-all placeholder:text-gray-400 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 shadow-inner font-sans leading-relaxed resize-none overflow-y-auto"
               />
+
+              {/* Real-time 4-Criteria Writing Assessment System */}
+              <div className="mt-4">
+                <AssessmentScorecard
+                  module="writing"
+                  editable={true}
+                  studentSubmissionText={writingEssay}
+                />
+              </div>
             </div>
           </div>
         ) : (

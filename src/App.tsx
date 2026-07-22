@@ -17,6 +17,7 @@ import {
   INITIAL_USER_PROGRESS, MOCK_TESTS, 
   MOCK_ATTEMPT_HISTORY, MOCK_BAND_PROGRESS 
 } from './data/mockData';
+import { INITIAL_REGISTERED_STUDENTS } from './data/mockUserData';
 import { IELTSTest, TestCategory, TestType, AttemptHistory, BandProgressPoint, VocabularyWord, StudentLead } from './types';
 
 export default function App() {
@@ -77,6 +78,24 @@ export default function App() {
     }
     return MOCK_TESTS;
   });
+
+  // Student Lead Directory State
+  const [registeredStudents, setRegisteredStudents] = useState<StudentLead[]>(() => {
+    const saved = localStorage.getItem('ielts_registered_students');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch (e) { }
+    }
+    localStorage.setItem('ielts_registered_students', JSON.stringify(INITIAL_REGISTERED_STUDENTS));
+    return INITIAL_REGISTERED_STUDENTS;
+  });
+
+  const handleUpdateStudents = (updatedStudents: StudentLead[]) => {
+    setRegisteredStudents(updatedStudents);
+    localStorage.setItem('ielts_registered_students', JSON.stringify(updatedStudents));
+  };
 
   // Student Lead Session State
   const [currentUser, setCurrentUser] = useState<StudentLead | null>(() => {
@@ -371,6 +390,8 @@ export default function App() {
                 onDeleteTest={handleDeleteTest}
                 onResetToDefaults={handleResetToDefaults}
                 onLogoutAdmin={handleAdminLogout}
+                students={registeredStudents}
+                onUpdateStudents={handleUpdateStudents}
               />
             </motion.div>
           ) : activeType === 'Vocabulary' ? (

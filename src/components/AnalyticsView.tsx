@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   ResponsiveContainer, LineChart, Line, XAxis, YAxis, 
   CartesianGrid, Tooltip, Legend, BarChart, Bar 
@@ -6,9 +6,10 @@ import {
 import { 
   TrendingUp, Award, Clock, CheckCircle2, AlertTriangle, 
   Lightbulb, Sparkles, Star, ChevronRight, HelpCircle,
-  Volume2, BookOpen, PenTool, Mic
+  Volume2, BookOpen, PenTool, Mic, X, Eye, Sliders
 } from 'lucide-react';
 import { BandProgressPoint, AttemptHistory, UserProgress } from '../types';
+import AssessmentScorecard from './AssessmentScorecard';
 
 interface AnalyticsViewProps {
   progress: UserProgress;
@@ -21,7 +22,8 @@ export default function AnalyticsView({
   recentAttempts,
   progressData,
 }: AnalyticsViewProps) {
-  
+  const [selectedAttemptForModal, setSelectedAttemptForModal] = useState<AttemptHistory | null>(null);
+
   // Calculate average band
   const averageBand = parseFloat(
     (recentAttempts.reduce((sum, att) => sum + att.bandScore, 0) / recentAttempts.length).toFixed(2)
@@ -284,8 +286,141 @@ export default function AnalyticsView({
             </button>
           </div>
         </div>
-
       </div>
+
+      {/* 4. Recent Attempt Diagnostic Reports with 4-Criteria Breakdown */}
+      <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div>
+            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+              <Sliders className="h-4 w-4 text-rose-600" />
+              <span>Recent Mock Test Diagnostic Reports & Criteria Breakdown</span>
+            </h3>
+            <p className="text-xs text-gray-400">Click any Writing or Speaking attempt to view the complete 4-criteria assessment breakdown with reasons and advice.</p>
+          </div>
+          <span className="text-xs text-gray-400 font-mono">{recentAttempts.length} Total Records</span>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {recentAttempts.map((attempt) => {
+            const isWriting = attempt.category === 'writing';
+            const isSpeaking = attempt.category === 'speaking';
+            const hasCriteria = !!(attempt.writingEvaluation || attempt.speakingEvaluation);
+
+            return (
+              <div 
+                key={attempt.id}
+                onClick={() => setSelectedAttemptForModal(attempt)}
+                className={`p-4 rounded-xl border transition-all cursor-pointer flex flex-col justify-between space-y-3 ${
+                  hasCriteria ? 'border-indigo-200 bg-indigo-50/20 hover:border-indigo-400 hover:shadow-xs' : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${
+                      attempt.category === 'listening' ? 'bg-blue-100 text-blue-800' :
+                      attempt.category === 'reading' ? 'bg-indigo-100 text-indigo-800' :
+                      attempt.category === 'writing' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                    }`}>
+                      {attempt.category}
+                    </span>
+                    <span className="text-[10px] font-mono text-gray-400">{attempt.date}</span>
+                  </div>
+                  <h4 className="text-xs font-bold text-gray-900 line-clamp-2 mt-1">{attempt.testTitle}</h4>
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-gray-100">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-500 font-medium">Achieved Score:</span>
+                    <span className="font-extrabold text-rose-600">Band {attempt.bandScore.toFixed(1)}</span>
+                  </div>
+
+                  {hasCriteria ? (
+                    <button className="w-full text-center text-[10px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 py-1.5 rounded-lg flex items-center justify-center gap-1">
+                      <Eye className="h-3 w-3" />
+                      <span>View 4-Criteria Assessment</span>
+                    </button>
+                  ) : (
+                    <span className="block text-[10px] text-gray-400 font-medium text-center italic">
+                      Standard Module Score
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Attempt Diagnostic Report Modal */}
+      {selectedAttemptForModal && (
+        <div 
+          className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/60 backdrop-blur-xs flex items-center justify-center p-4"
+          onClick={() => setSelectedAttemptForModal(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl max-w-3xl w-full p-6 border border-gray-100 shadow-2xl space-y-4 my-8 text-left animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase bg-rose-50 text-rose-700 border border-rose-100 px-2 py-0.5 rounded">
+                  Diagnostic Report
+                </span>
+                <h3 className="text-base font-bold text-gray-900 mt-1">{selectedAttemptForModal.testTitle}</h3>
+                <p className="text-xs text-gray-400">Attempted on {selectedAttemptForModal.date} • Duration {selectedAttemptForModal.timeSpentMinutes} mins</p>
+              </div>
+
+              <button
+                onClick={() => setSelectedAttemptForModal(null)}
+                className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {selectedAttemptForModal.category === 'writing' && (
+              <AssessmentScorecard
+                module="writing"
+                writingEval={selectedAttemptForModal.writingEvaluation}
+                editable={false}
+              />
+            )}
+
+            {selectedAttemptForModal.category === 'speaking' && (
+              <AssessmentScorecard
+                module="speaking"
+                speakingEval={selectedAttemptForModal.speakingEvaluation}
+                editable={false}
+              />
+            )}
+
+            {(selectedAttemptForModal.category === 'listening' || selectedAttemptForModal.category === 'reading') && (
+              <div className="bg-gray-50 rounded-2xl p-6 text-center space-y-3">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                  <Award className="h-6 w-6" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-gray-900">Objective Answer Module Result</h4>
+                  <p className="text-xs text-gray-500 max-w-md mx-auto mt-1">
+                    {selectedAttemptForModal.category === 'listening' ? 'Listening' : 'Reading'} scores are generated automatically based on raw accuracy out of 40 standard questions.
+                  </p>
+                </div>
+                <div className="inline-block bg-white p-3 rounded-xl border border-gray-200 shadow-2xs font-mono text-xs text-gray-800">
+                  Correct Answers: <strong>{selectedAttemptForModal.correctAnswers}</strong> / {selectedAttemptForModal.totalQuestions || 40} ➔ <strong className="text-rose-600">Band {selectedAttemptForModal.bandScore}</strong>
+                </div>
+              </div>
+            )}
+
+            {selectedAttemptForModal.examinerFeedback && (
+              <div className="bg-amber-50/80 rounded-xl p-4 border border-amber-200/60 space-y-1">
+                <span className="text-[10px] font-bold uppercase text-amber-800 tracking-wider">Examiner Note:</span>
+                <p className="text-xs text-amber-950 font-medium leading-relaxed">{selectedAttemptForModal.examinerFeedback}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   );

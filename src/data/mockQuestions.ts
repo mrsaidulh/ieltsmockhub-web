@@ -30,7 +30,81 @@ export const MOCK_QUESTIONS_BY_TEST_ID: Record<string, IELTSQuestion[]> = {
       questionText: 'The library requires a physical utility bill to verify the student\'s local address.',
       correctAnswer: 'False',
       explanation: "The librarian says: 'Any digital PDF copy of your rental agreement or a bank statement shown on your phone is perfectly fine. We do not require a hardcopy utility bill anymore.'",
+      passageNumber: 1
+    },
+    {
+      id: 'l1_q4',
+      type: 'Blanks',
+      questionText: 'Visitors must report to the main ______ before beginning the guided park tour.',
+      correctAnswer: 'Visitor Centre',
+      explanation: "Part 2 announcement directs all tour participants to assemble at the Visitor Centre.",
       passageNumber: 2
+    },
+    {
+      id: 'l1_q5',
+      type: 'MCQ',
+      questionText: 'What time does the last shuttle bus return from the park summit?',
+      options: [
+        'A. 16:30',
+        'B. 17:15',
+        'C. 18:00',
+        'D. 18:45'
+      ],
+      correctAnswer: 'C',
+      explanation: "The ranger confirms: 'Make sure you are back at the bus stop by 18:00 hours sharp.'",
+      passageNumber: 2
+    },
+    {
+      id: 'l1_q6',
+      type: 'SentenceCompletion',
+      questionText: 'Microplastic runoff in marine estuaries severely affects the digestive systems of local ____.',
+      correctAnswer: 'shellfish',
+      explanation: "The researcher emphasizes that filter-feeding shellfish ingest microplastic particles at alarming rates.",
+      passageNumber: 3
+    },
+    {
+      id: 'l1_q7',
+      type: 'MCQ',
+      questionText: 'Which research methodology did the team select for soil sample analysis?',
+      options: [
+        'A. Spectroscopic infrared imaging',
+        'B. Manual microscopic filtration',
+        'C. Gravimetric density separation',
+        'D. Thermal degradation chromatography'
+      ],
+      correctAnswer: 'A',
+      explanation: "The professor explains that spectroscopic infrared imaging provided the highest precision.",
+      passageNumber: 3
+    },
+    {
+      id: 'l1_q8',
+      type: 'Blanks',
+      questionText: 'Early Polynesian navigators relied primarily on observing island wave reflection and ocean ____.',
+      correctAnswer: 'swells',
+      explanation: "The lecture highlights ocean swells and star constellations as primary navigational indicators.",
+      passageNumber: 4
+    },
+    {
+      id: 'l1_q9',
+      type: 'MCQ',
+      questionText: 'The cross-staff was originally developed during the 14th century to measure:',
+      options: [
+        'A. Magnetic declination of the north pole',
+        'B. Angular altitude of celestial bodies above the horizon',
+        'C. Ocean depth in uncharted coastal waters',
+        'D. Barometric atmospheric pressure variations'
+      ],
+      correctAnswer: 'B',
+      explanation: "The lecturer clarifies the cross-staff measured the angular height of stars above the horizon.",
+      passageNumber: 4
+    },
+    {
+      id: 'l1_q10',
+      type: 'SentenceCompletion',
+      questionText: 'The invention of the marine chronometer solved the long-standing challenge of calculating ____ at sea.',
+      correctAnswer: 'longitude',
+      explanation: "John Harrison's marine chronometer allowed accurate longitude calculation.",
+      passageNumber: 4
     }
   ],
   l2: [

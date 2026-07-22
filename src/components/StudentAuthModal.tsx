@@ -164,12 +164,16 @@ export default function StudentAuthModal({
     setIsSubmitting(true);
     setTimeout(() => {
       setIsSubmitting(false);
+      const todayStr = new Date().toISOString().split('T')[0];
       const newStudent: StudentLead = {
         name: regName.trim(),
         email: regEmail.trim(),
         phone: regPhone.trim(),
         verified: true,
-        password: regPassword
+        password: regPassword,
+        createdAt: todayStr,
+        lastActiveDate: todayStr,
+        testsCompletedCount: 0
       };
 
       const updatedStudents = [...registeredStudents, newStudent];

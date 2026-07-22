@@ -6,6 +6,7 @@ import {
   FileText, Clock, HelpCircle, Check, Info, ChevronRight, 
   Bookmark, PlayCircle, Star, Sparkle
 } from 'lucide-react';
+import AssessmentScorecard from './AssessmentScorecard';
 
 interface SpeakingPracticeProps {
   testId?: string;
@@ -676,21 +677,13 @@ export default function SpeakingPractice({
         )}
       </div>
 
-      {/* 3. Speaking Evaluation Tips & Self-Audit Guide */}
-      <div className="bg-rose-50/30 border border-rose-100/60 rounded-2xl p-4 text-left space-y-2.5">
-        <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider flex items-center gap-1.5">
-          <Award className="h-4 w-4 text-rose-500" /> IELTS Speaking Band Assessment
-        </span>
-        <div className="grid gap-2 sm:grid-cols-2 text-[10px] text-gray-500">
-          <div className="space-y-1">
-            <p className="font-bold text-gray-700">🗣️ Pronunciation (25%)</p>
-            <p className="leading-relaxed">Keep a clean rhythm, speak clearly, stress syllables properly, and vary sentence intonation.</p>
-          </div>
-          <div className="space-y-1">
-            <p className="font-bold text-gray-700">⏱️ Fluency & Coherence (25%)</p>
-            <p className="leading-relaxed">Aim for 120-150 words per minute. Avoid long silence intervals or over-using fillers like "um" or "ah".</p>
-          </div>
-        </div>
+      {/* 3. Official 4-Criteria Speaking Assessment Scorecard */}
+      <div className="pt-2">
+        <AssessmentScorecard
+          module="speaking"
+          editable={true}
+          studentSubmissionText={transcript}
+        />
       </div>
 
       {/* 4. attempts History Section */}

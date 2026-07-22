@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Database, Plus, Trash2, Edit3, ArrowLeft, Check, AlertCircle, 
   HelpCircle, Volume2, BookOpen, PenTool, Mic, PlusCircle, MinusCircle, 
   RefreshCw, FileText, LayoutGrid, Eye, EyeOff, Lock, Unlock, Settings,
-  ArrowUp, ArrowDown, Image as ImageIcon, Table as TableIcon
+  ArrowUp, ArrowDown, Image as ImageIcon, Table as TableIcon, Users, BarChart3,
+  Sparkles, Play, Pause, Layers, HelpCircle as HelpIcon, CheckCircle2, Sparkle
 } from 'lucide-react';
-import { IELTSTest, IELTSQuestion, TestCategory, TestType, QuestionType, PassageBlock } from '../types';
+import { IELTSTest, IELTSQuestion, TestCategory, TestType, QuestionType, PassageBlock, StudentLead } from '../types';
 import AdminTestManager from './AdminTestManager';
+import AdminUserStats from './AdminUserStats';
+import QuestionRenderer from './QuestionRenderer';
 
 interface AdminPanelProps {
   tests: IELTSTest[];
@@ -15,6 +18,8 @@ interface AdminPanelProps {
   onDeleteTest: (id: string) => void;
   onResetToDefaults: () => void;
   onLogoutAdmin?: () => void;
+  students?: StudentLead[];
+  onUpdateStudents?: (updatedStudents: StudentLead[]) => void;
 }
 
 const ALL_QUESTION_TYPES: QuestionType[] = [
@@ -38,10 +43,12 @@ export default function AdminPanel({
   onUpdateTest,
   onDeleteTest,
   onResetToDefaults,
-  onLogoutAdmin
+  onLogoutAdmin,
+  students = [],
+  onUpdateStudents = () => {}
 }: AdminPanelProps) {
   // Navigation inside Admin Panel
-  const [viewMode, setViewMode] = useState<'list' | 'form' | 'test_manager'>('list');
+  const [viewMode, setViewMode] = useState<'user_stats' | 'list' | 'form' | 'test_manager'>('user_stats');
   const [editingTestId, setEditingTestId] = useState<string | null>(null);
 
   // Form States - Core Metadata
@@ -61,10 +68,25 @@ export default function AdminPanel({
   const [passageBlocks, setPassageBlocks] = useState<PassageBlock[]>([]);
   const [audioUrl, setAudioUrl] = useState('');
   const [audioScript, setAudioScript] = useState('');
-  const [writingPrompt, setWritingPrompt] = useState('');
-  const [speakingPart1, setSpeakingPart1] = useState('');
-  const [speakingPart2, setSpeakingPart2] = useState('');
-  const [speakingPart3, setSpeakingPart3] = useState('');
+  
+  // Writing Multi-Task Content Fields
+  const [writingPrompt, setWritingPrompt] = useState(''); // Task 1 prompt text
+  const [writingTask2Prompt, setWritingTask2Prompt] = useState(''); // Task 2 essay prompt text
+  const [writingTask1ImageUrl, setWritingTask1ImageUrl] = useState(''); // Task 1 chart/graph image URL
+  const [writingSampleAnswer, setWritingSampleAnswer] = useState(''); // Band 9 model answer
+
+  // Speaking Multi-Part Content Fields
+  const [speakingPart1, setSpeakingPart1] = useState(''); // Part 1 Introduction topics
+  const [speakingPart2, setSpeakingPart2] = useState(''); // Part 2 Cue card prompt
+  const [speakingPart3, setSpeakingPart3] = useState(''); // Part 3 Discussion questions
+  const [speakingSampleAnswer, setSpeakingSampleAnswer] = useState(''); // Band 9 model answers / vocabulary
+
+  // Audio stream tester
+  const [isPlayingAudioTest, setIsPlayingAudioTest] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Question Builder Preview State
+  const [previewTestAnswer, setPreviewTestAnswer] = useState('');
 
   // Sections (e.g. ['Section 1', 'Section 2'])
   const [sectionsText, setSectionsText] = useState('');
@@ -129,10 +151,18 @@ export default function AdminPanel({
 
     if (test.category === 'writing') {
       setWritingPrompt(test.sections[0] || '');
+      setWritingTask2Prompt(test.sections[1] || '');
+      setWritingSampleAnswer(test.sections[2] || '');
+      if (test.passage && test.passage.startsWith('http')) {
+        setWritingTask1ImageUrl(test.passage);
+      } else {
+        setWritingTask1ImageUrl('');
+      }
     } else if (test.category === 'speaking') {
       setSpeakingPart1(test.sections[0] || '');
       setSpeakingPart2(test.sections[1] || '');
       setSpeakingPart3(test.sections[2] || '');
+      setSpeakingSampleAnswer(test.sections[3] || '');
     }
 
     // Load questions
@@ -159,15 +189,19 @@ export default function AdminPanel({
       {
         id: 'b2',
         type: 'paragraph',
-        content: 'Write the first paragraph of your reading passage here.'
+        content: 'Write the first paragraph of your reading passage here. Label paragraphs like Paragraph A, Paragraph B for matching questions.'
       }
     ]);
     setAudioUrl('');
     setAudioScript('');
     setWritingPrompt('');
+    setWritingTask2Prompt('');
+    setWritingTask1ImageUrl('');
+    setWritingSampleAnswer('');
     setSpeakingPart1('');
     setSpeakingPart2('');
     setSpeakingPart3('');
+    setSpeakingSampleAnswer('');
     setQuestions([]);
     setYear(2026);
     setBookNumber('');
@@ -300,13 +334,18 @@ export default function AdminPanel({
 
     let resolvedSections: string[] = [];
     if (category === 'writing') {
-      resolvedSections = [writingPrompt || `Task 1: Write at least 150 words describing details.`];
+      resolvedSections = [
+        writingPrompt || `Task 1: The visual chart or diagram below shows data regarding key metrics. Write at least 150 words.`,
+        writingTask2Prompt || `Task 2: Discuss both views and give your opinion with relevant examples. Write at least 250 words.`,
+        writingSampleAnswer || ''
+      ].filter((s, idx) => idx < 2 || s.trim() !== '');
     } else if (category === 'speaking') {
       resolvedSections = [
         speakingPart1 || 'Part 1: Discussion on leisure and hobbies',
         speakingPart2 || 'Part 2 Cue Card: Describe an old building or structure',
-        speakingPart3 || 'Part 3: Preservation vs modernization'
-      ];
+        speakingPart3 || 'Part 3: Preservation vs modernization',
+        speakingSampleAnswer || ''
+      ].filter((s, idx) => idx < 3 || s.trim() !== '');
     } else {
       resolvedSections = sectionsText.split('\n').map(s => s.trim()).filter(s => s !== '');
       if (resolvedSections.length === 0) {
@@ -320,14 +359,18 @@ export default function AdminPanel({
       category,
       type,
       durationMinutes: Number(durationMinutes) || 30,
-      questionsCount: category === 'writing' ? 1 : category === 'speaking' ? 3 : questions.length,
+      questionsCount: category === 'writing' ? 2 : category === 'speaking' ? 3 : (questions.length > 0 ? questions.length : 40),
       attemptsCount: editingTestId ? (tests.find(t => t.id === editingTestId)?.attemptsCount || 0) : 0,
       averageScore: editingTestId ? (tests.find(t => t.id === editingTestId)?.averageScore || 7.0) : 7.0,
       description: description.trim() || `Authentic custom practice test designed for ${category} assessment.`,
       sections: resolvedSections,
       questions: category !== 'writing' && category !== 'speaking' ? questions : undefined,
       passageBlocks: category === 'reading' ? passageBlocks : undefined,
-      passage: category === 'reading' ? passageBlocks.map(b => b.content).join('\n\n') : undefined,
+      passage: category === 'reading' 
+        ? passageBlocks.map(b => b.content).join('\n\n') 
+        : category === 'writing' && writingTask1ImageUrl
+          ? writingTask1ImageUrl
+          : undefined,
       audioUrl: category === 'listening' ? audioUrl.trim() : undefined,
       audioScript: category === 'listening' ? audioScript.trim() : undefined,
       bookYear: Number(year) || 2026,
@@ -385,57 +428,97 @@ export default function AdminPanel({
             <span className="rounded bg-rose-50 border border-rose-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-rose-700">
               Restricted Area
             </span>
-            <h2 className="text-base font-extrabold text-gray-900 mt-1">IELTS Content Manager</h2>
+            <h2 className="text-base font-extrabold text-gray-900 mt-1">IELTS Admin Workspace</h2>
           </div>
         </div>
 
-        {viewMode === 'list' ? (
-          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-            {onLogoutAdmin && (
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {onLogoutAdmin && (
+            <button
+              type="button"
+              onClick={onLogoutAdmin}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-rose-600 border border-rose-200 bg-rose-50/50 rounded-xl hover:bg-rose-50 hover:text-rose-700 transition-all active:scale-95 cursor-pointer"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              <span>Exit Admin</span>
+            </button>
+          )}
+
+          {viewMode === 'list' && (
+            <>
               <button
                 type="button"
-                onClick={onLogoutAdmin}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-rose-600 border border-rose-200 bg-rose-50/50 rounded-xl hover:bg-rose-50 hover:text-rose-700 transition-all active:scale-95 cursor-pointer"
+                onClick={() => setShowConfirmReset(true)}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all active:scale-95 cursor-pointer"
               >
-                <Lock className="h-3.5 w-3.5" />
-                <span>Exit Admin</span>
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Reset Defaults</span>
               </button>
-            )}
+              <button
+                type="button"
+                onClick={() => setViewMode('test_manager')}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-md shadow-indigo-100 transition-all active:scale-95 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>AdminTestManager</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleStartCreate}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-md shadow-rose-100 transition-all active:scale-95 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Create Mock Test</span>
+              </button>
+            </>
+          )}
+
+          {(viewMode === 'form' || viewMode === 'test_manager') && (
             <button
-              type="button"
-              onClick={() => setShowConfirmReset(true)}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all active:scale-95 cursor-pointer"
+              onClick={() => setViewMode('list')}
+              className="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 rounded-xl border border-gray-200 transition-all active:scale-95 cursor-pointer"
             >
-              <RefreshCw className="h-3.5 w-3.5" />
-              <span>Reset to Defaults</span>
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Back to Tests</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('test_manager')}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-md shadow-indigo-100 transition-all active:scale-95 cursor-pointer"
-            >
-              <Plus className="h-4 w-4" />
-              <span>AdminTestManager (IELTS Reading)</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleStartCreate}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-md shadow-rose-100 transition-all active:scale-95 cursor-pointer"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Create Mock Test</span>
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => setViewMode('list')}
-            className="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 rounded-xl border border-gray-200 transition-all active:scale-95 cursor-pointer"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            <span>Cancel & Back</span>
-          </button>
-        )}
+          )}
+        </div>
       </div>
+
+      {/* Admin Module Sub-Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-gray-150 pb-2">
+        <button
+          onClick={() => setViewMode('user_stats')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            viewMode === 'user_stats'
+              ? 'bg-rose-600 text-white shadow-md shadow-rose-100'
+              : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <BarChart3 className="h-4 w-4" />
+          <span>User Statistics & Analytics</span>
+        </button>
+
+        <button
+          onClick={() => setViewMode('list')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            viewMode === 'list' || viewMode === 'form'
+              ? 'bg-rose-600 text-white shadow-md shadow-rose-100'
+              : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Database className="h-4 w-4" />
+          <span>IELTS Test Content Bank ({tests.length})</span>
+        </button>
+      </div>
+
+      {/* User Statistics View */}
+      {viewMode === 'user_stats' && (
+        <AdminUserStats 
+          students={students} 
+          onUpdateStudents={onUpdateStudents} 
+        />
+      )}
 
       {/* Confirmation Modal for Resets */}
       {showConfirmReset && (
@@ -536,7 +619,7 @@ export default function AdminPanel({
                         </td>
                         <td className="px-4 py-3.5 font-semibold text-gray-600">{test.durationMinutes}m</td>
                         <td className="px-4 py-3.5 text-gray-500 font-bold font-mono">
-                          {test.category === 'writing' ? '1 Prompt' : test.category === 'speaking' ? '3 Parts' : `${test.questions?.length || test.questionsCount || 0} Qs`}
+                          {test.category === 'writing' ? '2 Tasks' : test.category === 'speaking' ? '3 Parts' : `${test.questions?.length || test.questionsCount || 40} Qs`}
                         </td>
                         <td className="px-4 py-3.5 text-right whitespace-nowrap">
                           <div className="flex items-center justify-end gap-1">
@@ -716,7 +799,15 @@ export default function AdminPanel({
                 <input
                   type="text"
                   disabled
-                  value={category === 'writing' ? '1 Essay Prompt' : category === 'speaking' ? '3 speaking tasks' : `${questions.length} questions built`}
+                  value={
+                    category === 'writing' 
+                      ? '2 Tasks (Task 1 & Task 2)' 
+                      : category === 'speaking' 
+                        ? '3 Speaking Parts' 
+                        : questions.length > 0 
+                          ? `${questions.length} Questions Configured (${category === 'listening' ? '4 Listening Parts' : '3 Reading Passages'})`
+                          : `40 Questions (Standard IELTS ${category === 'listening' ? 'Listening' : 'Reading'})`
+                  }
                   className="w-full rounded-xl border border-gray-150 bg-gray-100 p-2.5 text-xs text-gray-500 cursor-not-allowed font-medium"
                 />
               </div>
@@ -1099,13 +1190,34 @@ export default function AdminPanel({
                   <Volume2 className="h-5 w-5 text-blue-500 flex-shrink-0 mt-0.5" />
                   <div>
                     <h4 className="text-xs font-bold text-blue-800">Listening Stream & Audio Details</h4>
-                    <p className="text-[10px] text-gray-400">Input a streaming audio source URL (.mp3 format) to enable an authentic audio player. Candidates can practice with genuine sound cues.</p>
+                    <p className="text-[10px] text-gray-400">Input a streaming audio source URL (.mp3 format) to enable an authentic audio player for candidates.</p>
                   </div>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-gray-500 uppercase">Audio Track Source Link (.mp3 format preferred)</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] font-bold text-gray-500 uppercase">Audio Track Source Link (.mp3)</label>
+                      {audioUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (audioRef.current) {
+                              if (isPlayingAudioTest) {
+                                audioRef.current.pause();
+                                setIsPlayingAudioTest(false);
+                              } else {
+                                audioRef.current.play().then(() => setIsPlayingAudioTest(true)).catch(() => alert('Could not play audio from URL'));
+                              }
+                            }
+                          }}
+                          className="text-[10px] font-bold text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          {isPlayingAudioTest ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                          <span>{isPlayingAudioTest ? 'Pause Audio' : 'Test Audio Playback'}</span>
+                        </button>
+                      )}
+                    </div>
                     <input
                       type="text"
                       placeholder="e.g. https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
@@ -1113,10 +1225,11 @@ export default function AdminPanel({
                       onChange={(e) => setAudioUrl(e.target.value)}
                       className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-700 outline-none transition-all focus:bg-white focus:border-rose-500 font-mono"
                     />
+                    {audioUrl && <audio ref={audioRef} src={audioUrl} onEnded={() => setIsPlayingAudioTest(false)} className="hidden" />}
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-gray-500 uppercase">Audio Transcript Summary</label>
+                    <label className="text-[11px] font-bold text-gray-500 uppercase">Audio Transcript Summary / Script</label>
                     <input
                       type="text"
                       placeholder="e.g. Section 1 Library Member Registration dialogue."
@@ -1130,10 +1243,10 @@ export default function AdminPanel({
                 <div className="space-y-1.5">
                   <label className="text-[11px] font-bold text-gray-500 uppercase">Sections / Tracks Structure (One per line)</label>
                   <textarea
-                    placeholder="Part 1: Library Membership Registration&#10;Part 2: Tour Guide Dialogue"
+                    placeholder="Part 1: Library Membership Registration (Qs 1-10)&#10;Part 2: Local Park Renovation Plan (Qs 11-20)&#10;Part 3: University Project Discussion (Qs 21-30)&#10;Part 4: Renewable Energy Lecture (Qs 31-40)"
                     value={sectionsText}
                     onChange={(e) => setSectionsText(e.target.value)}
-                    rows={2}
+                    rows={3}
                     className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-700 outline-none transition-all focus:bg-white focus:border-rose-500 font-mono"
                   />
                 </div>
@@ -1141,24 +1254,76 @@ export default function AdminPanel({
             )}
 
             {category === 'writing' && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="rounded-xl bg-teal-50/50 p-3.5 border border-teal-100/50 flex gap-2">
                   <PenTool className="h-5 w-5 text-teal-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-xs font-bold text-teal-800">Writing Essay Prompt</h4>
-                    <p className="text-[10px] text-gray-400">Define the core writing task prompt. In practice sessions, candidates will type an essay and get scored based on target thresholds.</p>
+                    <h4 className="text-xs font-bold text-teal-800">Writing Module Tasks & Criteria</h4>
+                    <p className="text-[10px] text-gray-400">Configure Task 1 (Graph/Chart/Letter) and Task 2 (Discursive Essay) along with Model Answers.</p>
                   </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[11px] font-bold text-gray-500 uppercase">Task 1 or Task 2 Prompt Details *</label>
+                {/* Task 1 Box */}
+                <div className="p-4 rounded-2xl border border-teal-100 bg-white space-y-3">
+                  <span className="text-xs font-bold text-teal-800 uppercase tracking-wider block">Task 1 Details (Report / Graph / Letter - Min 150 Words)</span>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase">Task 1 Prompt Text *</label>
+                    <textarea
+                      placeholder="The bar chart below illustrates the proportion of energy generated from renewable sources across five countries between 2010 and 2025. Summarise the information by selecting and reporting the main features..."
+                      value={writingPrompt}
+                      onChange={(e) => setWritingPrompt(e.target.value)}
+                      rows={3}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-700 outline-none focus:bg-white focus:border-teal-500"
+                      required={category === 'writing'}
+                    />
+                  </div>
+                  <div className="grid gap-2 md:grid-cols-2">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-gray-500 uppercase">Task 1 Chart / Graph Image URL (Optional)</span>
+                      <input
+                        type="text"
+                        placeholder="e.g. https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800"
+                        value={writingTask1ImageUrl}
+                        onChange={(e) => setWritingTask1ImageUrl(e.target.value)}
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2 text-xs text-gray-700 outline-none font-mono"
+                      />
+                    </div>
+                    <div className="flex items-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setWritingTask1ImageUrl('https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&auto=format&fit=crop&q=80')}
+                        className="text-[10px] font-bold px-2.5 py-2 bg-teal-50 text-teal-700 rounded-xl border border-teal-100 hover:bg-teal-100 cursor-pointer"
+                      >
+                        ⚡ Load Sample Chart Image
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Task 2 Box */}
+                <div className="p-4 rounded-2xl border border-teal-100 bg-white space-y-3">
+                  <span className="text-xs font-bold text-teal-800 uppercase tracking-wider block">Task 2 Details (Discursive Essay - Min 250 Words)</span>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase">Task 2 Essay Prompt *</label>
+                    <textarea
+                      placeholder="Some people argue that artificial intelligence will eliminate traditional job roles, while others believe it will spawn new career opportunities. Discuss both views and give your opinion with relevant examples..."
+                      value={writingTask2Prompt}
+                      onChange={(e) => setWritingTask2Prompt(e.target.value)}
+                      rows={3}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-700 outline-none focus:bg-white focus:border-teal-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Model Answer Box */}
+                <div className="p-4 rounded-2xl border border-gray-150 bg-gray-50/40 space-y-2">
+                  <span className="text-xs font-bold text-gray-700 uppercase tracking-wider block">Band 9 Sample Model Answer (For Candidate Review)</span>
                   <textarea
-                    placeholder="Discuss both views and give your opinion on whether Generative AI technologies will ultimately empower or extinguish human-led creative professions..."
-                    value={writingPrompt}
-                    onChange={(e) => setWritingPrompt(e.target.value)}
+                    placeholder="Provide a Band 9 sample essay answer or commentary for teacher reference..."
+                    value={writingSampleAnswer}
+                    onChange={(e) => setWritingSampleAnswer(e.target.value)}
                     rows={4}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-3 text-xs text-gray-700 outline-none transition-all focus:bg-white focus:border-rose-500 font-sans leading-relaxed"
-                    required={category === 'writing'}
+                    className="w-full rounded-xl border border-gray-200 bg-white p-2.5 text-xs text-gray-700 outline-none focus:border-teal-500 font-sans leading-relaxed"
                   />
                 </div>
               </div>
@@ -1169,44 +1334,55 @@ export default function AdminPanel({
                 <div className="rounded-xl bg-purple-50/50 p-3.5 border border-purple-100/50 flex gap-2">
                   <Mic className="h-5 w-5 text-purple-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <h4 className="text-xs font-bold text-purple-800">Speaking Cue Cards & Parts</h4>
-                    <p className="text-[10px] text-gray-400">Declare the prompts for the three core Speaking interview parts.</p>
+                    <h4 className="text-xs font-bold text-purple-800">Speaking Parts & Model Hints</h4>
+                    <p className="text-[10px] text-gray-400">Declare the prompts for all three core Speaking interview parts.</p>
                   </div>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-3">
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-gray-500 uppercase">Part 1 Introduction Prompt</label>
+                  <div className="space-y-1.5 p-3 rounded-2xl border border-purple-100 bg-white">
+                    <label className="text-[11px] font-bold text-purple-700 uppercase block">Part 1: Intro & Personal Topics</label>
                     <textarea
-                      placeholder="Discussion on hobbies, digital devices, and leisure habits."
+                      placeholder="Let's talk about your hometown and daily routine. How often do you use public transport? What do you enjoy doing during your free time?"
                       value={speakingPart1}
                       onChange={(e) => setSpeakingPart1(e.target.value)}
-                      rows={3}
-                      className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-700 outline-none transition-all focus:bg-white focus:border-rose-500"
+                      rows={4}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-700 outline-none focus:bg-white focus:border-purple-500"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-gray-500 uppercase">Part 2 Cue Card Topic</label>
+                  <div className="space-y-1.5 p-3 rounded-2xl border border-purple-100 bg-white">
+                    <label className="text-[11px] font-bold text-purple-700 uppercase block">Part 2: Cue Card Topic (1-2 mins)</label>
                     <textarea
-                      placeholder="Describe an old building or heritage structure you visited. You should say where it is, what it looks like..."
+                      placeholder="Describe a historic landmark or structure you visited. You should say: where it is located, what it looks like, who you went with, and explain why this place made a deep impression on you."
                       value={speakingPart2}
                       onChange={(e) => setSpeakingPart2(e.target.value)}
-                      rows={3}
-                      className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-700 outline-none transition-all focus:bg-white focus:border-rose-500"
+                      rows={4}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-700 outline-none focus:bg-white focus:border-purple-500"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold text-gray-500 uppercase">Part 3 Abstract Analysis Prompt</label>
+                  <div className="space-y-1.5 p-3 rounded-2xl border border-purple-100 bg-white">
+                    <label className="text-[11px] font-bold text-purple-700 uppercase block">Part 3: In-depth Discussion</label>
                     <textarea
-                      placeholder="Analytical discussion on heritage preservation versus rapid modernization."
+                      placeholder="Why is it important to preserve ancient architecture in modern cities? Do you think governments should prioritize cultural heritage funding over infrastructure development?"
                       value={speakingPart3}
                       onChange={(e) => setSpeakingPart3(e.target.value)}
-                      rows={3}
-                      className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-700 outline-none transition-all focus:bg-white focus:border-rose-500"
+                      rows={4}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-gray-700 outline-none focus:bg-white focus:border-purple-500"
                     />
                   </div>
+                </div>
+
+                <div className="p-3.5 rounded-2xl border border-gray-150 bg-gray-50/40 space-y-1.5">
+                  <label className="text-[11px] font-bold text-gray-700 uppercase block">Band 9 Model Vocabulary & Key Phrases</label>
+                  <textarea
+                    placeholder="e.g. Key collocations: architectural splendour, historical significance, urban gentrification, structural integrity, preservation endeavours."
+                    value={speakingSampleAnswer}
+                    onChange={(e) => setSpeakingSampleAnswer(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-xl border border-gray-200 bg-white p-2.5 text-xs text-gray-700 outline-none focus:border-purple-500"
+                  />
                 </div>
               </div>
             )}
@@ -1216,8 +1392,110 @@ export default function AdminPanel({
           {category !== 'writing' && category !== 'speaking' && (
             <div className="border-t border-gray-100 pt-5 space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Step 3: Interactive Question Bank</h3>
-                <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded border border-amber-100">{questions.length} Questions Configured</span>
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Step 3: Interactive Question Bank</h3>
+                  <p className="text-[10px] text-gray-400">Build interactive items for Listening or Reading using all official IELTS question formats.</p>
+                </div>
+                <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg border border-amber-200">
+                  {questions.length} Questions Configured
+                </span>
+              </div>
+
+              {/* Quick Presets Bar */}
+              <div className="p-3 rounded-2xl border border-indigo-100 bg-indigo-50/30 space-y-2">
+                <span className="text-[10px] font-bold text-indigo-800 uppercase tracking-wider flex items-center gap-1">
+                  <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                  <span>⚡ Quick Sample Presets (Click to Auto-Populate Question Template)</span>
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentQType('MCQ');
+                      setCurrentQText('Which factor contributed most significantly to the species migration?');
+                      setCurrentQOptions(['A. Seasonal temperature shifts', 'B. Loss of natural forest habitats', 'C. Industrial pollution runoff', 'D. Increased predator populations']);
+                      setCurrentQCorrect('B');
+                      setCurrentQExplanation('Paragraph C explicitly cites habitat deforestation as the primary driver.');
+                    }}
+                    className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold rounded-lg transition-all cursor-pointer shadow-xs"
+                  >
+                    + Sample MCQ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentQType('TrueFalseNotGiven');
+                      setCurrentQText('The original experiment yielded conclusive evidence during the initial trials.');
+                      setCurrentQCorrect('False');
+                      setCurrentQExplanation('Paragraph A states results remained ambiguous until trial 4.');
+                    }}
+                    className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold rounded-lg transition-all cursor-pointer shadow-xs"
+                  >
+                    + Sample True/False/Not Given
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentQType('MatchingHeadings');
+                      setCurrentQText('Select the correct heading for Paragraph B');
+                      setCurrentQHeadings(['i. Unanticipated experimental hurdles', 'ii. Economic impact on coastal communities', 'iii. Early technological innovations', 'iv. Future conservation directives']);
+                      setCurrentQCorrect('i');
+                      setCurrentQExplanation('Paragraph B outlines technical setbacks faced by researchers.');
+                    }}
+                    className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold rounded-lg transition-all cursor-pointer shadow-xs"
+                  >
+                    + Sample Matching Headings
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentQType('SentenceCompletion');
+                      setCurrentQText('Researchers discovered that deep ocean corals thrive best in waters with low ____ levels.');
+                      setCurrentQCorrect('salinity');
+                      setCurrentQExplanation('Paragraph D confirms low salinity water accelerates coral polyp growth.');
+                    }}
+                    className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold rounded-lg transition-all cursor-pointer shadow-xs"
+                  >
+                    + Sample Sentence Completion
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentQType('SummaryCompletion');
+                      setCurrentQText('Complete the summary using words from the box below.');
+                      setCurrentQOptions(['A. Biodiversity', 'B. Deforestation', 'C. Urbanization', 'D. Agriculture']);
+                      setCurrentQCorrect('A');
+                      setCurrentQExplanation('The passage summary focuses on preserving marine biodiversity.');
+                    }}
+                    className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold rounded-lg transition-all cursor-pointer shadow-xs"
+                  >
+                    + Sample Word Bank Summary
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentQType('DiagramCompletion');
+                      setCurrentQText('Label the diagram below: The upper filtration chamber (Label 3)');
+                      setCurrentQCorrect('sediment filter');
+                      setCurrentQExplanation('Diagram section 3 depicts the primary sediment filter mesh.');
+                    }}
+                    className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold rounded-lg transition-all cursor-pointer shadow-xs"
+                  >
+                    + Sample Diagram Label
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCurrentQType('Blanks');
+                      setCurrentQText('The main library remains open until ____ PM on weekdays.');
+                      setCurrentQCorrect('9:00');
+                      setCurrentQExplanation('Section 1 audio announces weekday closing time as 9:00 PM.');
+                    }}
+                    className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold rounded-lg transition-all cursor-pointer shadow-xs"
+                  >
+                    + Sample Fill in Blanks
+                  </button>
+                </div>
               </div>
 
               {/* Dynamic Questions Builder Block */}
@@ -1257,7 +1535,6 @@ export default function AdminPanel({
                       onChange={(e) => {
                         const nextType = e.target.value as QuestionType;
                         setCurrentQType(nextType);
-                        // Sensible default correct answers based on type
                         if (nextType === 'TrueFalseNotGiven') {
                           setCurrentQCorrect('True');
                         } else if (nextType === 'YesNoNotGiven') {
@@ -1268,7 +1545,7 @@ export default function AdminPanel({
                         } else if (nextType === 'MCQ') {
                           setCurrentQCorrect('A');
                           setCurrentQOptions(['A. Option A', 'B. Option B', 'C. Option C', 'D. Option D']);
-                        } else if (['MatchingInfo', 'MatchingFeatures', 'MatchingSentenceEndings'].includes(nextType)) {
+                        } else if (['MatchingInfo', 'MatchingFeatures', 'MatchingSentenceEndings', 'SummaryCompletion'].includes(nextType)) {
                           setCurrentQCorrect('A');
                           setCurrentQOptions(['A. Option A', 'B. Option B', 'C. Option C']);
                         } else {
@@ -1288,6 +1565,7 @@ export default function AdminPanel({
                       <option value="SummaryCompletion">9. Summary/Note/Table Completion</option>
                       <option value="DiagramCompletion">10. Diagram Label Completion</option>
                       <option value="ShortAnswer">11. Short-Answer Questions</option>
+                      <option value="Blanks">12. Fill in the Blanks</option>
                     </select>
                   </div>
                 </div>
@@ -1393,7 +1671,7 @@ export default function AdminPanel({
                       <select
                         value={currentQCorrect}
                         onChange={(e) => setCurrentQCorrect(e.target.value)}
-                        className="w-full rounded-xl border border-gray-200 bg-white p-2 text-xs text-gray-700 outline-none"
+                        className="w-full rounded-xl border border-gray-200 bg-white p-2 text-xs text-gray-700 outline-none font-bold text-emerald-700"
                       >
                         <option value="True">True</option>
                         <option value="False">False</option>
@@ -1403,7 +1681,7 @@ export default function AdminPanel({
                       <select
                         value={currentQCorrect}
                         onChange={(e) => setCurrentQCorrect(e.target.value)}
-                        className="w-full rounded-xl border border-gray-200 bg-white p-2 text-xs text-gray-700 outline-none"
+                        className="w-full rounded-xl border border-gray-200 bg-white p-2 text-xs text-gray-700 outline-none font-bold text-emerald-700"
                       >
                         <option value="Yes">Yes</option>
                         <option value="No">No</option>
@@ -1413,7 +1691,7 @@ export default function AdminPanel({
                       <select
                         value={currentQCorrect}
                         onChange={(e) => setCurrentQCorrect(e.target.value)}
-                        className="w-full rounded-xl border border-gray-200 bg-white p-2 text-xs text-gray-700 outline-none font-mono"
+                        className="w-full rounded-xl border border-gray-200 bg-white p-2 text-xs text-gray-700 outline-none font-mono font-bold text-emerald-700"
                       >
                         {currentQOptions.map((_, i) => {
                           const code = String.fromCharCode(65 + i);
@@ -1425,18 +1703,18 @@ export default function AdminPanel({
                         type="text"
                         placeholder={
                           currentQType === 'MatchingHeadings' ? 'e.g. ii' :
-                          currentQType === 'SentenceCompletion' ? 'e.g. carbon footprint' :
-                          currentQType === 'DiagramCompletion' ? 'e.g. marine micro-polyp' : 'e.g. solar energy'
+                          currentQType === 'SentenceCompletion' ? 'e.g. salinity' :
+                          currentQType === 'DiagramCompletion' ? 'e.g. sediment filter' : 'e.g. 9:00'
                         }
                         value={currentQCorrect}
                         onChange={(e) => setCurrentQCorrect(e.target.value)}
-                        className="w-full rounded-xl border border-gray-200 bg-white p-2 text-xs text-gray-700 outline-none focus:border-rose-500 font-mono font-bold"
+                        className="w-full rounded-xl border border-gray-200 bg-white p-2 text-xs text-gray-700 outline-none focus:border-rose-500 font-mono font-bold text-emerald-700"
                       />
                     )}
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-gray-500 uppercase">Teacher explanation/commentary</label>
+                    <label className="text-[10px] font-bold text-gray-500 uppercase">Teacher Explanation / Notes</label>
                     <input
                       type="text"
                       placeholder="e.g. Paragraph B details this adaptation explicitly..."
@@ -1449,41 +1727,109 @@ export default function AdminPanel({
                   <button
                     type="button"
                     onClick={handleSaveQuestion}
-                    className="w-full py-2 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer"
+                    className="w-full py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition-all active:scale-95 cursor-pointer shadow-md shadow-rose-100"
                   >
                     {selectedQuestionIndex !== null ? 'Save Changes' : 'Include Question'}
                   </button>
                 </div>
+
+                {/* Live Candidate View Preview Card */}
+                {currentQText && (
+                  <div className="p-3.5 rounded-2xl border border-slate-200 bg-white space-y-2 shadow-xs">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                      <Eye className="h-3.5 w-3.5 text-rose-500" />
+                      <span>Live Candidate View Preview</span>
+                    </span>
+                    <div className="p-2.5 rounded-xl bg-slate-50/70 border border-slate-100">
+                      <QuestionRenderer
+                        question={{
+                          id: 'preview_temp',
+                          type: currentQType,
+                          questionText: currentQText,
+                          correctAnswer: currentQCorrect || 'Sample Answer',
+                          explanation: currentQExplanation || 'Teacher explanation will appear here after test submission.',
+                          options: ['MCQ', 'MatchingInfo', 'MatchingFeatures', 'MatchingSentenceEndings', 'SummaryCompletion'].includes(currentQType) ? currentQOptions : undefined,
+                          headingOptions: currentQType === 'MatchingHeadings' ? currentQHeadings : undefined,
+                          passageNumber: currentQPassageNumber
+                        }}
+                        value={previewTestAnswer}
+                        onChange={(val) => setPreviewTestAnswer(val)}
+                        showFeedback={true}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Form Question List Overview */}
               <div className="space-y-2">
-                <span className="text-[11px] font-bold text-gray-500 uppercase block">Active Question list for this test</span>
+                <span className="text-[11px] font-bold text-gray-500 uppercase block">Active Question List for this Test</span>
                 {questions.length === 0 ? (
-                  <p className="text-xs text-gray-400 italic bg-gray-50 border border-gray-100 rounded-xl p-3">No interactive questions added yet. Use the question generator above to add listening or reading questions.</p>
+                  <p className="text-xs text-gray-400 italic bg-gray-50 border border-gray-100 rounded-xl p-3">
+                    No interactive questions added yet. Use the question generator above to add listening or reading questions.
+                  </p>
                 ) : (
                   <div className="grid gap-2">
                     {questions.map((q, idx) => (
-                      <div key={q.id} className="flex items-center justify-between rounded-xl bg-white border border-gray-100 p-2.5 text-xs hover:border-gray-200 transition-all">
+                      <div key={q.id} className="flex items-center justify-between rounded-xl bg-white border border-gray-150 p-2.5 text-xs hover:border-rose-200 transition-all shadow-2xs">
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <span className="h-5 w-5 rounded-full bg-rose-50 text-rose-700 flex items-center justify-center font-extrabold text-[10px] border border-rose-100 flex-shrink-0">{idx + 1}</span>
+                          <span className="h-5 w-5 rounded-full bg-rose-50 text-rose-700 flex items-center justify-center font-extrabold text-[10px] border border-rose-100 flex-shrink-0">
+                            {idx + 1}
+                          </span>
                           <div className="truncate">
                             <p className="font-bold text-gray-800 truncate">{q.questionText}</p>
-                            <p className="text-[10px] text-gray-400 font-mono uppercase mt-0.2">{q.type} • Answer: <span className="font-bold text-rose-600 font-mono">{q.correctAnswer}</span></p>
+                            <p className="text-[10px] text-gray-400 font-mono uppercase mt-0.2">
+                              {q.type} • Answer: <span className="font-bold text-emerald-600 font-mono">{q.correctAnswer}</span> • Part {q.passageNumber || 1}
+                            </p>
                           </div>
                         </div>
-                        <div className="flex gap-1 flex-shrink-0 ml-4">
+                        <div className="flex items-center gap-1 flex-shrink-0 ml-4">
+                          {/* Reorder Buttons */}
+                          {idx > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newQs = [...questions];
+                                const temp = newQs[idx];
+                                newQs[idx] = newQs[idx - 1];
+                                newQs[idx - 1] = temp;
+                                setQuestions(newQs);
+                              }}
+                              className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded"
+                              title="Move Up"
+                            >
+                              <ArrowUp className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                          {idx < questions.length - 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newQs = [...questions];
+                                const temp = newQs[idx];
+                                newQs[idx] = newQs[idx + 1];
+                                newQs[idx + 1] = temp;
+                                setQuestions(newQs);
+                              }}
+                              className="p-1 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded"
+                              title="Move Down"
+                            >
+                              <ArrowDown className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => handleEditQuestion(idx)}
-                            className="p-1 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded"
+                            className="p-1.5 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                            title="Edit question"
                           >
                             <Edit3 className="h-3.5 w-3.5" />
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteQuestion(idx)}
-                            className="p-1 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded"
+                            className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                            title="Delete question"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
