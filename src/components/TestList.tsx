@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { 
   Search, SlidersHorizontal, BookOpen, Clock, 
-  HelpCircle, Sparkles, User, Play, ChevronRight, 
+  HelpCircle, User, Play, ChevronRight, 
   CheckCircle, ArrowUpRight
 } from 'lucide-react';
 import { IELTSTest, TestCategory, TestType } from '../types';
@@ -249,12 +249,8 @@ export default function TestList({
             </div>
           </div>
 
-          <div className="border-t border-gray-50 pt-3 flex flex-col gap-2">
-            <div className="text-[10px] font-bold text-rose-700 bg-rose-50/60 border border-rose-100/50 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 justify-center">
-              <Sparkles className="h-3.5 w-3.5 text-rose-500 animate-pulse" />
-              <span>Hierarchical Tags Active</span>
-            </div>
-            {activeFiltersCount > 0 && (
+          {activeFiltersCount > 0 && (
+            <div className="border-t border-gray-50 pt-3">
               <button
                 type="button"
                 onClick={() => {
@@ -269,8 +265,8 @@ export default function TestList({
               >
                 Reset Filters
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 

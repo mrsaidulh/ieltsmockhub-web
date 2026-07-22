@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Target, BookOpen, Award, Zap } from 'lucide-react';
+import { motion } from 'motion/react';
+import { BookOpen, Award, Zap } from 'lucide-react';
 
 interface SplashAnimationProps {
   onComplete: () => void;
@@ -12,7 +12,7 @@ export default function SplashAnimation({ onComplete }: SplashAnimationProps) {
   useEffect(() => {
     // Step progression timer
     const timer1 = setTimeout(() => setStep(1), 300);   // Words start appearing
-    const timer2 = setTimeout(() => setStep(2), 1100);  // Highlighting final word & badge
+    const timer2 = setTimeout(() => setStep(2), 1100);  // Highlighting final word
     const timer3 = setTimeout(() => setStep(3), 2200);  // Trigger fade out
     const timer4 = setTimeout(() => onComplete(), 2700); // Complete splash
 
@@ -25,10 +25,9 @@ export default function SplashAnimation({ onComplete }: SplashAnimationProps) {
   }, [onComplete]);
 
   const words = [
-    { text: "Learn,", color: "text-blue-400", icon: BookOpen, delay: 0.1 },
-    { text: "Practice,", color: "text-teal-400", icon: Zap, delay: 0.35 },
-    { text: "Test", color: "text-indigo-400", icon: Target, delay: 0.6 },
-    { text: "& Score", color: "text-amber-400 font-black", icon: Award, delay: 0.85 }
+    { text: "Learn,", color: "text-rose-400 font-extrabold", icon: BookOpen, delay: 0.1 },
+    { text: "Practice,", color: "text-amber-400 font-extrabold", icon: Zap, delay: 0.35 },
+    { text: "& Score", color: "text-emerald-400 font-black", icon: Award, delay: 0.6 }
   ];
 
   return (
@@ -43,31 +42,30 @@ export default function SplashAnimation({ onComplete }: SplashAnimationProps) {
         <motion.div
           animate={{
             scale: [1, 1.3, 1],
-            opacity: [0.15, 0.3, 0.15],
+            opacity: [0.2, 0.4, 0.2],
             x: [-30, 30, -30],
             y: [-20, 20, -20]
           }}
           transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-rose-600/30 blur-3xl"
+          className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-rose-600/40 blur-3xl"
         />
         <motion.div
           animate={{
             scale: [1, 1.25, 1],
-            opacity: [0.15, 0.3, 0.15],
+            opacity: [0.2, 0.35, 0.2],
             x: [40, -20, 40],
             y: [30, -30, 30]
           }}
           transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-indigo-600/30 blur-3xl"
+          className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-pink-600/35 blur-3xl"
         />
       </div>
 
       <div className="relative z-10 max-w-2xl w-full px-6 text-center space-y-8">
         {/* Main Headline Animated Words */}
         <div className="py-2 space-y-4">
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight leading-tight flex flex-wrap items-center justify-center gap-x-3 gap-y-2">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight flex flex-nowrap whitespace-nowrap items-center justify-center gap-x-2 sm:gap-x-3">
             {words.map((item, idx) => {
-              const IconComp = item.icon;
               return (
                 <motion.span
                   key={idx}
@@ -85,7 +83,7 @@ export default function SplashAnimation({ onComplete }: SplashAnimationProps) {
           <motion.p
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: step >= 1 ? 1 : 0, y: step >= 1 ? 0 : 10 }}
-            transition={{ duration: 0.6, delay: 1.0 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
             className="text-xs sm:text-sm text-gray-400 font-medium max-w-md mx-auto"
           >
             Your comprehensive preparation hub for Academic & General Training Band 9 success.
@@ -96,20 +94,19 @@ export default function SplashAnimation({ onComplete }: SplashAnimationProps) {
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: step >= 1 ? 1 : 0, scale: step >= 1 ? 1 : 0.95 }}
-          transition={{ duration: 0.5, delay: 1.1 }}
-          className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 max-w-lg mx-auto pt-2"
+          transition={{ duration: 0.5, delay: 0.9 }}
+          className="grid grid-cols-3 gap-2.5 max-w-md mx-auto pt-2"
         >
           {[
-            { title: "Learn", detail: "Band 9 Models", activeColor: "border-blue-500/40 bg-blue-500/10 text-blue-300" },
-            { title: "Practice", detail: "All 4 Modules", activeColor: "border-teal-500/40 bg-teal-500/10 text-teal-300" },
-            { title: "Test", detail: "Real Exam Timers", activeColor: "border-indigo-500/40 bg-indigo-500/10 text-indigo-300" },
-            { title: "Score", detail: "Detailed Criteria", activeColor: "border-amber-500/40 bg-amber-500/10 text-amber-300" }
+            { title: "Learn", detail: "Band 9 Models", activeColor: "border-rose-500/40 bg-rose-500/10 text-rose-300" },
+            { title: "Practice", detail: "All 4 Modules", activeColor: "border-amber-500/40 bg-amber-500/10 text-amber-300" },
+            { title: "Score", detail: "Detailed Criteria", activeColor: "border-emerald-500/40 bg-emerald-500/10 text-emerald-300" }
           ].map((pill, pIdx) => (
             <motion.div
               key={pIdx}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.2 + pIdx * 0.1 }}
+              transition={{ delay: 1.0 + pIdx * 0.1 }}
               className={`p-2.5 rounded-xl border backdrop-blur-xs text-left transition-all ${pill.activeColor}`}
             >
               <p className="text-xs font-bold">{pill.title}</p>
@@ -125,7 +122,7 @@ export default function SplashAnimation({ onComplete }: SplashAnimationProps) {
               initial={{ width: "0%" }}
               animate={{ width: "100%" }}
               transition={{ duration: 2.3, ease: "linear" }}
-              className="h-full bg-gradient-to-r from-blue-500 via-rose-500 to-amber-400 rounded-full"
+              className="h-full bg-gradient-to-r from-rose-500 via-pink-500 to-amber-400 rounded-full"
             />
           </div>
         </div>
