@@ -27,7 +27,7 @@ export default function SplashAnimation({ onComplete }: SplashAnimationProps) {
   const words = [
     { text: "Learn,", color: "text-rose-400 font-extrabold", icon: BookOpen, delay: 0.1 },
     { text: "Practice,", color: "text-amber-400 font-extrabold", icon: Zap, delay: 0.35 },
-    { text: "& Score", color: "text-emerald-400 font-black", icon: Award, delay: 0.6 }
+    { text: "and Score", color: "text-emerald-400 font-black", icon: Award, delay: 0.6 }
   ];
 
   return (
