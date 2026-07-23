@@ -20,7 +20,7 @@ import {
   MOCK_ATTEMPT_HISTORY, MOCK_BAND_PROGRESS 
 } from './data/mockData';
 import { INITIAL_REGISTERED_STUDENTS } from './data/mockUserData';
-import { IELTSTest, TestCategory, TestType, AttemptHistory, BandProgressPoint, VocabularyWord, StudentLead } from './types';
+import { IELTSTest, TestCategory, TestType, AttemptHistory, BandProgressPoint, VocabularyWord, StudentLead, AdminUser } from './types';
 
 export default function App() {
   // Website Load Splash Animation state
@@ -40,20 +40,36 @@ export default function App() {
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
 
   // Admin authentication and privileges
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-    return localStorage.getItem('ielts_is_admin') === 'true';
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(() => {
+    const saved = localStorage.getItem('ielts_admin_user');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    if (localStorage.getItem('ielts_is_admin') === 'true') {
+      return { username: 'Administrator', role: 'Administrator', displayName: 'Administrator Workspace' };
+    }
+    return null;
   });
-  const [showAdminAuth, setShowAdminAuth] = useState<boolean>(false);
-  const [adminPinInput, setAdminPinInput] = useState<string>('');
-  const [adminPinError, setAdminPinError] = useState<string | null>(null);
 
-  // Close Admin PIN modal on Escape key press
+  const isAdmin = !!adminUser;
+  const [showAdminAuth, setShowAdminAuth] = useState<boolean>(false);
+  const [adminUsernameInput, setAdminUsernameInput] = useState<string>('');
+  const [adminPasswordInput, setAdminPasswordInput] = useState<string>('');
+  const [adminAuthError, setAdminAuthError] = useState<string | null>(null);
+  const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
+
+  // Close Admin login modal on Escape key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && showAdminAuth) {
         setShowAdminAuth(false);
-        setAdminPinError(null);
-        setAdminPinInput('');
+        setAdminAuthError(null);
+        setAdminUsernameInput('');
+        setAdminPasswordInput('');
       }
     };
 
@@ -242,27 +258,79 @@ export default function App() {
     triggerToast('All content restored to core mock data defaults.');
   };
 
-  const handleAdminLogin = (pin: string) => {
-    if (pin.trim() === 'admin123') {
-      setIsAdmin(true);
-      localStorage.setItem('ielts_is_admin', 'true');
-      setShowAdminAuth(false);
-      setAdminPinInput('');
-      setAdminPinError(null);
-      setActiveType('Admin'); // Immediately transition to Admin workspace!
-      triggerToast('Welcome Admin! Content manager tools unlocked.');
-    } else {
-      setAdminPinError('Invalid security passcode. Hint: Use admin123');
+  const handleResetAnalytics = () => {
+    // Reset test completion counts and activity dates while preserving registered student user profiles
+    const resetStudents = registeredStudents.map((s) => ({
+      ...s,
+      testsCompletedCount: 0,
+      lastTestDate: undefined,
+      reminderSentDate: undefined,
+      lastActiveDate: new Date().toISOString().split('T')[0]
+    }));
+
+    setRegisteredStudents(resetStudents);
+    localStorage.setItem('ielts_registered_students', JSON.stringify(resetStudents));
+
+    // Reset attempt logs and score progress metrics
+    setRecentAttempts([]);
+    setCompletedTestIds([]);
+    setProgress(INITIAL_USER_PROGRESS);
+    setProgressData(MOCK_BAND_PROGRESS);
+
+    triggerToast('User statistics and analytics reset successfully. Registered user accounts preserved.');
+  };
+
+  const handleAdminLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!adminUsernameInput.trim() || !adminPasswordInput.trim()) {
+      setAdminAuthError('Please enter both username and password.');
+      return;
+    }
+
+    setIsAuthenticating(true);
+    setAdminAuthError(null);
+
+    try {
+      const response = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: adminUsernameInput.trim(),
+          password: adminPasswordInput.trim()
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success && data.user) {
+        setAdminUser(data.user);
+        localStorage.setItem('ielts_admin_user', JSON.stringify(data.user));
+        localStorage.setItem('ielts_is_admin', 'true');
+        setShowAdminAuth(false);
+        setAdminUsernameInput('');
+        setAdminPasswordInput('');
+        setAdminAuthError(null);
+        setActiveType('Admin');
+        triggerToast(`Welcome ${data.user.displayName}! Access granted.`);
+      } else {
+        setAdminAuthError(data.error || 'Invalid username or password.');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setAdminAuthError('Authentication failed. Please verify credentials and server connection.');
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
   const handleAdminLogout = () => {
-    setIsAdmin(false);
+    setAdminUser(null);
+    localStorage.removeItem('ielts_admin_user');
     localStorage.removeItem('ielts_is_admin');
     if (activeType === 'Admin') {
       setActiveType('All');
     }
-    triggerToast('Administrator logged out successfully.');
+    triggerToast('Logged out successfully.');
   };
 
   const handleStartTest = (test: IELTSTest) => {
@@ -395,10 +463,11 @@ export default function App() {
                 onAddTest={handleAddTest}
                 onUpdateTest={handleUpdateTest}
                 onDeleteTest={handleDeleteTest}
-                onResetToDefaults={handleResetToDefaults}
                 onLogoutAdmin={handleAdminLogout}
                 students={registeredStudents}
                 onUpdateStudents={handleUpdateStudents}
+                adminUser={adminUser}
+                onResetAnalytics={handleResetAnalytics}
               />
             </motion.div>
           ) : activeType === 'Vocabulary' ? (
@@ -525,8 +594,9 @@ export default function App() {
             className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/40 backdrop-blur-sm"
             onClick={() => {
               setShowAdminAuth(false);
-              setAdminPinError(null);
-              setAdminPinInput('');
+              setAdminAuthError(null);
+              setAdminUsernameInput('');
+              setAdminPasswordInput('');
             }}
           >
             <div className="flex min-h-full items-center justify-center p-4">
@@ -543,68 +613,91 @@ export default function App() {
                   <h3 className="font-extrabold text-gray-900 text-sm">Staff Authentication</h3>
                 </div>
                 <button
+                  type="button"
                   onClick={() => {
                     setShowAdminAuth(false);
-                    setAdminPinError(null);
-                    setAdminPinInput('');
+                    setAdminAuthError(null);
+                    setAdminUsernameInput('');
+                    setAdminPasswordInput('');
                   }}
-                  className="p-1 rounded-full text-gray-400 hover:bg-gray-100"
+                  className="p-1 rounded-full text-gray-400 hover:bg-gray-100 cursor-pointer"
                 >
                   <X className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="space-y-3 text-left">
-                <p className="text-xs text-gray-400">
-                  Please enter the Admin Security PIN to manage actual reading articles, speaking prompts, and streaming tracks.
+              <form onSubmit={handleAdminLogin} className="space-y-4 text-left">
+                <p className="text-xs text-gray-500 font-medium leading-relaxed">
+                  Sign in with your Staff or Content Manager account to access administrative features.
                 </p>
 
-                <div className="bg-rose-50 border border-rose-100 rounded-xl p-2.5 text-[11px] text-rose-700 font-semibold flex items-center gap-2">
-                  <span className="bg-rose-600 text-white rounded text-[9px] px-1 py-0.2 font-extrabold uppercase">Hint</span>
-                  <span>PIN is <strong className="font-mono">admin123</strong> for testing & verification.</span>
-                </div>
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Username</label>
+                    <input
+                      type="text"
+                      placeholder="Enter Username"
+                      value={adminUsernameInput}
+                      onChange={(e) => {
+                        setAdminUsernameInput(e.target.value);
+                        if (adminAuthError) setAdminAuthError(null);
+                      }}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs font-medium text-gray-800 outline-none focus:bg-white focus:border-rose-500 focus:ring-1 focus:ring-rose-500/20 transition-all"
+                      required
+                    />
+                  </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-500 uppercase">Security PIN</label>
-                  <input
-                    type="password"
-                    placeholder="Enter Security PIN"
-                    value={adminPinInput}
-                    onChange={(e) => {
-                      setAdminPinInput(e.target.value);
-                      if (adminPinError) setAdminPinError(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        handleAdminLogin(adminPinInput);
-                      }
-                    }}
-                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs text-center font-mono font-bold tracking-widest text-gray-800 outline-none focus:bg-white focus:border-rose-500"
-                  />
-                  {adminPinError && (
-                    <p className="text-[10px] text-rose-600 font-bold mt-1">{adminPinError}</p>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Password</label>
+                    <input
+                      type="password"
+                      placeholder="Enter Password"
+                      value={adminPasswordInput}
+                      onChange={(e) => {
+                        setAdminPasswordInput(e.target.value);
+                        if (adminAuthError) setAdminAuthError(null);
+                      }}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50/50 p-2.5 text-xs font-medium text-gray-800 outline-none focus:bg-white focus:border-rose-500 focus:ring-1 focus:ring-rose-500/20 transition-all"
+                      required
+                    />
+                  </div>
+
+                  {adminAuthError && (
+                    <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-100 text-rose-700 text-[11px] font-semibold">
+                      {adminAuthError}
+                    </div>
                   )}
                 </div>
-              </div>
 
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={() => {
-                    setShowAdminAuth(false);
-                    setAdminPinError(null);
-                    setAdminPinInput('');
-                  }}
-                  className="flex-1 py-2.5 border border-gray-200 text-xs font-semibold text-gray-600 rounded-xl hover:bg-gray-50 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleAdminLogin(adminPinInput)}
-                  className="flex-1 py-2.5 bg-rose-600 text-xs font-semibold text-white rounded-xl hover:bg-rose-500 cursor-pointer"
-                >
-                  Unlock Access
-                </button>
-              </div>
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAdminAuth(false);
+                      setAdminAuthError(null);
+                      setAdminUsernameInput('');
+                      setAdminPasswordInput('');
+                    }}
+                    className="flex-1 py-2.5 border border-gray-200 text-xs font-semibold text-gray-600 rounded-xl hover:bg-gray-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isAuthenticating}
+                    className="flex-1 py-2.5 bg-rose-600 text-xs font-semibold text-white rounded-xl hover:bg-rose-500 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isAuthenticating ? (
+                      <>
+                        <div className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Verifying...</span>
+                      </>
+                    ) : (
+                      <span>Sign In</span>
+                    )}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </div>
         </div>

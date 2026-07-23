@@ -2,13 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Database, Plus, Trash2, Edit3, ArrowLeft, Check, AlertCircle, 
   HelpCircle, Volume2, BookOpen, PenTool, Mic, PlusCircle, MinusCircle, 
-  RefreshCw, FileText, LayoutGrid, Eye, EyeOff, Lock, Unlock, Settings,
+  FileText, LayoutGrid, Eye, EyeOff, Lock, Unlock, Settings,
   ArrowUp, ArrowDown, Image as ImageIcon, Table as TableIcon, Users, BarChart3,
-  Sparkles, Play, Pause, Layers, HelpCircle as HelpIcon, CheckCircle2, Sparkle
+  Sparkles, Play, Pause, Layers, HelpCircle as HelpIcon, CheckCircle2, Sparkle, Server
 } from 'lucide-react';
-import { IELTSTest, IELTSQuestion, TestCategory, TestType, QuestionType, PassageBlock, StudentLead } from '../types';
-import AdminTestManager from './AdminTestManager';
+import { IELTSTest, IELTSQuestion, TestCategory, TestType, QuestionType, PassageBlock, StudentLead, AdminUser } from '../types';
 import AdminUserStats from './AdminUserStats';
+import AdminServerMonitor from './AdminServerMonitor';
 import QuestionRenderer from './QuestionRenderer';
 
 interface AdminPanelProps {
@@ -16,10 +16,12 @@ interface AdminPanelProps {
   onAddTest: (test: IELTSTest) => void;
   onUpdateTest: (test: IELTSTest) => void;
   onDeleteTest: (id: string) => void;
-  onResetToDefaults: () => void;
+  onResetToDefaults?: () => void;
   onLogoutAdmin?: () => void;
   students?: StudentLead[];
   onUpdateStudents?: (updatedStudents: StudentLead[]) => void;
+  adminUser?: AdminUser | null;
+  onResetAnalytics?: () => void;
 }
 
 const ALL_QUESTION_TYPES: QuestionType[] = [
@@ -42,14 +44,17 @@ export default function AdminPanel({
   onAddTest,
   onUpdateTest,
   onDeleteTest,
-  onResetToDefaults,
   onLogoutAdmin,
   students = [],
-  onUpdateStudents = () => {}
+  onUpdateStudents = () => {},
+  adminUser = null,
+  onResetAnalytics
 }: AdminPanelProps) {
   // Navigation inside Admin Panel
-  const [viewMode, setViewMode] = useState<'user_stats' | 'list' | 'form' | 'test_manager'>('user_stats');
+  const [viewMode, setViewMode] = useState<'user_stats' | 'server_monitor' | 'list' | 'form'>('user_stats');
   const [editingTestId, setEditingTestId] = useState<string | null>(null);
+  const [serverThresholdBreached, setServerThresholdBreached] = useState<boolean>(false);
+  const [serverMaxPct, setServerMaxPct] = useState<number>(0);
 
   // Form States - Core Metadata
   const [title, setTitle] = useState('');
@@ -105,18 +110,6 @@ export default function AdminPanel({
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
 
   const [formError, setFormError] = useState<string | null>(null);
-  const [showConfirmReset, setShowConfirmReset] = useState(false);
-
-  // Close confirmation modal on escape
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && showConfirmReset) {
-        setShowConfirmReset(false);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showConfirmReset]);
 
   // Load existing test data for editing
   const handleStartEdit = (test: IELTSTest) => {
@@ -393,18 +386,6 @@ export default function AdminPanel({
     setEditingTestId(null);
   };
 
-  if (viewMode === 'test_manager') {
-    return (
-      <AdminTestManager
-        tests={tests}
-        onAddTest={onAddTest}
-        onUpdateTest={onUpdateTest}
-        onDeleteTest={onDeleteTest}
-        onClose={() => setViewMode('list')}
-      />
-    );
-  }
-
   // Calculations for Admin Stats Panel
   const stats = {
     total: tests.length,
@@ -425,10 +406,19 @@ export default function AdminPanel({
             <Database className="h-5 w-5" />
           </div>
           <div>
-            <span className="rounded bg-rose-50 border border-rose-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-rose-700">
-              Restricted Area
-            </span>
-            <h2 className="text-base font-extrabold text-gray-900 mt-1">IELTS Admin Workspace</h2>
+            <div className="flex items-center gap-1.5">
+              <span className="rounded bg-rose-50 border border-rose-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-rose-700">
+                {adminUser?.role === 'ContentManager' ? 'Content Manager' : 'Administrator'}
+              </span>
+              {adminUser?.username && (
+                <span className="text-[10px] text-gray-500 font-semibold">
+                  ({adminUser.username})
+                </span>
+              )}
+            </div>
+            <h2 className="text-base font-extrabold text-gray-900 mt-1">
+              {adminUser?.role === 'ContentManager' ? 'IELTS Content Manager Workspace' : 'IELTS Admin Workspace'}
+            </h2>
           </div>
         </div>
 
@@ -445,35 +435,17 @@ export default function AdminPanel({
           )}
 
           {viewMode === 'list' && (
-            <>
-              <button
-                type="button"
-                onClick={() => setShowConfirmReset(true)}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-all active:scale-95 cursor-pointer"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                <span>Reset Defaults</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('test_manager')}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-md shadow-indigo-100 transition-all active:scale-95 cursor-pointer"
-              >
-                <Plus className="h-4 w-4" />
-                <span>AdminTestManager</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleStartCreate}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-md shadow-rose-100 transition-all active:scale-95 cursor-pointer"
-              >
-                <Plus className="h-4 w-4" />
-                <span>Create Mock Test</span>
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={handleStartCreate}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-md shadow-rose-100 transition-all active:scale-95 cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Create Mock Test</span>
+            </button>
           )}
 
-          {(viewMode === 'form' || viewMode === 'test_manager') && (
+          {viewMode === 'form' && (
             <button
               onClick={() => setViewMode('list')}
               className="flex items-center gap-1 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 rounded-xl border border-gray-200 transition-all active:scale-95 cursor-pointer"
@@ -486,7 +458,7 @@ export default function AdminPanel({
       </div>
 
       {/* Admin Module Sub-Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-gray-150 pb-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-gray-150 pb-2">
         <button
           onClick={() => setViewMode('user_stats')}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -497,6 +469,25 @@ export default function AdminPanel({
         >
           <BarChart3 className="h-4 w-4" />
           <span>User Statistics & Analytics</span>
+        </button>
+
+        <button
+          onClick={() => setViewMode('server_monitor')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer relative ${
+            viewMode === 'server_monitor'
+              ? 'bg-rose-600 text-white shadow-md shadow-rose-100'
+              : serverThresholdBreached
+              ? 'bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100'
+              : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+          }`}
+        >
+          <Server className={`h-4 w-4 ${serverThresholdBreached ? 'text-rose-600 animate-bounce' : ''}`} />
+          <span>Server Resources & Peak Load Monitor</span>
+          {serverThresholdBreached && (
+            <span className="bg-rose-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider animate-pulse shadow-sm">
+              ⚠️ OVERLOAD {serverMaxPct}%
+            </span>
+          )}
         </button>
 
         <button
@@ -517,48 +508,19 @@ export default function AdminPanel({
         <AdminUserStats 
           students={students} 
           onUpdateStudents={onUpdateStudents} 
+          adminUser={adminUser}
+          onResetAnalytics={onResetAnalytics}
         />
       )}
 
-      {/* Confirmation Modal for Resets */}
-      {showConfirmReset && (
-        <div 
-          className="fixed inset-0 z-50 overflow-y-auto bg-gray-900/40 backdrop-blur-sm"
-          onClick={() => setShowConfirmReset(false)}
-        >
-          <div className="flex min-h-full items-center justify-center p-4">
-            <div 
-              className="bg-white rounded-3xl max-w-sm w-full p-6 border border-gray-100 shadow-2xl space-y-4 my-8"
-              onClick={(e) => e.stopPropagation()}
-            >
-            <div className="h-10 w-10 bg-rose-50 rounded-full flex items-center justify-center text-rose-600 mx-auto">
-              <AlertCircle className="h-6 w-6" />
-            </div>
-            <div className="text-center space-y-1">
-              <h3 className="font-extrabold text-gray-900 text-sm">Reset Content Bank?</h3>
-              <p className="text-xs text-gray-400">This will delete all custom uploaded tests and restore the core mock datasets. This action is irreversible.</p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowConfirmReset(false)}
-                className="flex-1 py-2.5 border border-gray-200 text-xs font-semibold text-gray-600 rounded-xl hover:bg-gray-50 cursor-pointer"
-              >
-                Go Back
-              </button>
-              <button
-                onClick={() => {
-                  onResetToDefaults();
-                  setShowConfirmReset(false);
-                  alert('Content bank restored to default mock data successfully.');
-                }}
-                className="flex-1 py-2.5 bg-rose-600 text-xs font-semibold text-white rounded-xl hover:bg-rose-500 cursor-pointer"
-              >
-                Confirm Reset
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Server Resources & Load Monitor View */}
+      {viewMode === 'server_monitor' && (
+        <AdminServerMonitor 
+          onThresholdStatusChange={(isBreached, maxPct) => {
+            setServerThresholdBreached(isBreached);
+            setServerMaxPct(maxPct);
+          }}
+        />
       )}
 
       {/* List Mode View */}

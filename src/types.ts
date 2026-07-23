@@ -2,6 +2,14 @@ export type TestCategory = 'all' | 'listening' | 'reading' | 'writing' | 'speaki
 
 export type TestType = 'Academic' | 'General';
 
+export type AdminRole = 'Administrator' | 'ContentManager';
+
+export interface AdminUser {
+  username: string;
+  role: AdminRole;
+  displayName: string;
+}
+
 export interface StudentLead {
   name: string;
   email: string;
@@ -9,6 +17,8 @@ export interface StudentLead {
   verified: boolean;
   otpSent?: boolean;
   password?: string;
+  isLocked?: boolean;
+  passwordLastReset?: string;
   createdAt?: string; // YYYY-MM-DD
   lastActiveDate?: string; // YYYY-MM-DD
   testsCompletedCount?: number;
