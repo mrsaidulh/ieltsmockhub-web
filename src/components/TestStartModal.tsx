@@ -60,6 +60,18 @@ export default function TestStartModal({
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [reviewMode, setReviewMode] = useState(false);
 
+  // Reset simulation and form state whenever test changes
+  useEffect(() => {
+    if (test) {
+      setIsSimulating(false);
+      setIsVerifying(false);
+      setHasSubmitted(false);
+      setSimulatedScore(null);
+      setUserAnswers({});
+      setWritingEssay('');
+    }
+  }, [test?.id]);
+
   // Load questions for specific test (supports both custom embedded questions and hardcoded mocks)
   const activeQuestions = test ? (test.questions || MOCK_QUESTIONS_BY_TEST_ID[test.id] || []) : [];
 
@@ -268,9 +280,6 @@ export default function TestStartModal({
         : `Predefined answers check verified. Review wrong answer explanations to master paragraph matching and True/False/Not Given traps.`;
 
       onConfirmStart(test, selectedMode, simulatedScore, answersMap, computedFeedback);
-      setIsSimulating(false);
-      setHasSubmitted(false);
-      setSimulatedScore(null);
       onClose();
     }
   };
@@ -396,7 +405,6 @@ export default function TestStartModal({
         timeLimit={timeLimit}
         activeQuestions={activeQuestions}
         onCancel={() => {
-          setIsSimulating(false);
           onClose();
         }}
         onSubmit={(answers, essay) => {
@@ -754,11 +762,9 @@ export default function TestStartModal({
 
             <button
               onClick={() => {
-                setIsVerifying(false);
-                setIsSimulating(false);
                 onClose();
               }}
-              className="w-full text-center text-[10px] font-bold text-gray-400 hover:text-gray-500 mt-2 block"
+              className="w-full text-center text-[10px] font-bold text-gray-400 hover:text-gray-500 mt-2 block cursor-pointer"
             >
               Quit Exam & Discard Temporary Results
             </button>
