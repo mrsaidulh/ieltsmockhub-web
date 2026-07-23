@@ -255,9 +255,8 @@ export default function StudentAuthModal({
     <div 
       className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/40 backdrop-blur-sm" 
       id="student-auth-modal-backdrop"
-      onClick={handleClose}
     >
-      <div className="flex min-h-full items-center justify-center p-4" onClick={handleClose}>
+      <div className="flex min-h-full items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -383,24 +382,33 @@ export default function StudentAuthModal({
                 </div>
               </div>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-rose-600 hover:bg-rose-500 disabled:bg-rose-400 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-100 transition-all active:scale-98 cursor-pointer font-sans"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    <span>Verifying credentials...</span>
-                  </>
-                ) : (
-                  <>
-                    <UserCheck className="h-3.5 w-3.5" />
-                    <span>Log In to Student Portal</span>
-                  </>
-                )}
-              </button>
+              {/* Submit & Cancel Buttons */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="py-2.5 px-4 border border-gray-200 text-xs font-semibold text-gray-600 rounded-xl hover:bg-gray-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-rose-600 hover:bg-rose-500 disabled:bg-rose-400 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-100 transition-all active:scale-98 cursor-pointer font-sans"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      <span>Verifying credentials...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck className="h-3.5 w-3.5" />
+                      <span>Log In to Student Portal</span>
+                    </>
+                  )}
+                </button>
+              </div>
 
               {/* Support Contact */}
               <div className="rounded-xl bg-gray-50/90 p-3 border border-gray-150 text-[10px] text-gray-600 leading-relaxed text-left flex items-start gap-2">
@@ -549,24 +557,33 @@ export default function StudentAuthModal({
                 </div>
               </div>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-rose-600 hover:bg-rose-500 disabled:bg-rose-400 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-100 transition-all active:scale-98 cursor-pointer font-sans"
-              >
-                {isSubmitting ? (
-                  <>
-                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    <span>Sending SMS verification...</span>
-                  </>
-                ) : (
-                  <>
-                    <Smartphone className="h-3.5 w-3.5" />
-                    <span>Send SMS Verification Code</span>
-                  </>
-                )}
-              </button>
+              {/* Submit & Cancel Buttons */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="py-2.5 px-4 border border-gray-200 text-xs font-semibold text-gray-600 rounded-xl hover:bg-gray-50 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-rose-600 hover:bg-rose-500 disabled:bg-rose-400 text-white font-bold text-xs rounded-xl shadow-md shadow-rose-100 transition-all active:scale-98 cursor-pointer font-sans"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      <span>Sending SMS verification...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Smartphone className="h-3.5 w-3.5" />
+                      <span>Send SMS Verification Code</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </form>
           )}
         </motion.div>

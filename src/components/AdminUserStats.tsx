@@ -54,8 +54,58 @@ export default function AdminUserStats({
   
   const [toastNotice, setToastNotice] = useState<string | null>(null);
 
-  // 30-day analytics dataset
-  const trendData = useMemo(() => generate30DayTrendData(), []);
+  const [totalVisitorsToday, setTotalVisitorsToday] = useState<number>(() => {
+    const saved = localStorage.getItem('ielts_daily_visitors');
+    if (saved !== null) {
+      const parsed = parseInt(saved, 10);
+      return isNaN(parsed) ? 1 : parsed;
+    }
+    return Math.max(1, students.length);
+  });
+
+  // Dynamic 30-day analytics dataset matching real student activity and reset state
+  const trendData = useMemo(() => {
+    const resetTimeStr = localStorage.getItem('ielts_analytics_reset_at');
+    const resetTime = resetTimeStr ? new Date(resetTimeStr).getTime() : 0;
+
+    const result = [];
+    const nowDate = new Date();
+
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(nowDate);
+      d.setDate(d.getDate() - i);
+      const dateIso = d.toISOString().split('T')[0];
+      const dateLabel = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const dayTimestamp = d.getTime();
+
+      // Registrations on dateIso
+      const newRegs = students.filter(s => s.createdAt && s.createdAt.startsWith(dateIso)).length;
+
+      // Tests completed on dateIso (reset to 0 if prior to reset timestamp)
+      let testsTaken = 0;
+      if (resetTime === 0 || dayTimestamp >= resetTime) {
+        testsTaken = students.filter(s => s.lastTestDate && s.lastTestDate.startsWith(dateIso)).length;
+      }
+
+      // DAU active on dateIso
+      let dau = students.filter(s => s.lastActiveDate && s.lastActiveDate.startsWith(dateIso)).length;
+      if (i === 0) {
+        dau = Math.max(dau, 1);
+      }
+
+      const visitors = Math.max(newRegs + dau, i === 0 ? totalVisitorsToday : 0);
+
+      result.push({
+        date: dateLabel,
+        fullDate: dateIso,
+        visitors,
+        dau,
+        newRegs,
+        testsTaken
+      });
+    }
+    return result;
+  }, [students, totalVisitorsToday]);
 
   // Helper for date calculations
   const now = new Date();
@@ -92,8 +142,6 @@ export default function AdminUserStats({
       return daysSinceActive > 7 || daysSinceTest > 7 || ((s.testsCompletedCount || 0) === 0 && getDaysAgo(s.createdAt) > 7);
     });
   }, [students]);
-
-  const totalVisitorsToday = 342;
 
   // Filtered & Sorted Student List
   const filteredStudents = useMemo(() => {
@@ -1163,6 +1211,9 @@ export default function AdminUserStats({
                 type="button"
                 onClick={() => {
                   setShowResetModal(false);
+                  localStorage.setItem('ielts_daily_visitors', '1');
+                  localStorage.setItem('ielts_analytics_reset_at', new Date().toISOString());
+                  setTotalVisitorsToday(1);
                   if (onResetAnalytics) {
                     onResetAnalytics();
                   }

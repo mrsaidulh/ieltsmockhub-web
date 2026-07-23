@@ -127,12 +127,37 @@ export default function TestSession({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Close on Escape key
+  // Explicit draft save helper
+  const saveDraft = () => {
+    const draftData = {
+      userAnswers: answersRef.current || userAnswers,
+      writingEssay: essayRef.current || writingEssay,
+      scratchpadText,
+      highlights,
+      flaggedQuestions,
+      secondsLeft,
+      colorTheme,
+      volume,
+      leftWidth,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(`ielts_draft_${test.id}`, JSON.stringify(draftData));
+  };
+
+  const handleSaveDraftAndExit = () => {
+    saveDraft();
+    triggerToast("Draft progress saved successfully! You can resume anytime.");
+    onCancel();
+  };
+
+  // Close / Save Draft on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        saveDraft();
+        triggerToast("Draft progress saved!");
         if (showExitConfirm) {
-          setShowExitConfirm(false);
+          handleSaveDraftAndExit();
         } else {
           setShowExitConfirm(true);
         }
@@ -140,7 +165,7 @@ export default function TestSession({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showExitConfirm]);
+  }, [showExitConfirm, userAnswers, writingEssay, scratchpadText, highlights, flaggedQuestions, secondsLeft, colorTheme, volume, leftWidth, test.id]);
 
   // Draggable partition splitter logic
   useEffect(() => {
@@ -566,9 +591,13 @@ export default function TestSession({
         {/* Brand & Test Title */}
         <div className="flex items-center gap-2 sm:gap-3">
           <button
-            onClick={() => setShowExitConfirm(true)}
+            onClick={() => {
+              saveDraft();
+              triggerToast("Draft progress saved!");
+              setShowExitConfirm(true);
+            }}
             className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-rose-600 transition-colors cursor-pointer"
-            title="Exit and return"
+            title="Exit and Save Draft"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -800,6 +829,7 @@ export default function TestSession({
 
                   <button
                     onClick={() => {
+                      saveDraft();
                       triggerToast("Practice progress backup saved locally.");
                       setShowSettingsDropdown(false);
                     }}
@@ -826,17 +856,32 @@ export default function TestSession({
                   <button
                     onClick={() => {
                       setShowSettingsDropdown(false);
+                      saveDraft();
+                      triggerToast("Draft progress saved!");
                       setShowExitConfirm(true);
                     }}
                     className="w-full text-left px-3.5 py-2 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors flex items-center gap-2 cursor-pointer font-bold border-t border-gray-100"
                   >
                     <X className="h-3.5 w-3.5 text-rose-500" />
-                    <span>Exit Test Hub</span>
+                    <span>Exit Test Hub (Save Draft)</span>
                   </button>
                 </div>
               </>
             )}
           </div>
+
+          {/* Close Simulation X Button */}
+          <button
+            onClick={() => {
+              saveDraft();
+              triggerToast("Draft progress saved!");
+              setShowExitConfirm(true);
+            }}
+            className="p-1.5 rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 transition-colors cursor-pointer"
+            title="Close Simulation & Save Draft (ESC)"
+          >
+            <X className="h-4 w-4" />
+          </button>
 
           {/* Solid Green Submit Button */}
           <button
@@ -1451,41 +1496,57 @@ export default function TestSession({
       {showExitConfirm && (
         <div 
           className="fixed inset-0 z-50 bg-gray-950/75 backdrop-blur-xs flex items-center justify-center p-4"
-          onClick={() => setShowExitConfirm(false)}
+          onClick={handleSaveDraftAndExit}
         >
           <div 
-            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-150 text-left space-y-6 animate-in fade-in zoom-in-95 duration-200"
+            className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-150 text-left space-y-6 animate-in fade-in zoom-in-95 duration-200 relative"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Top Close X Button */}
+            <button
+              onClick={handleSaveDraftAndExit}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100 cursor-pointer"
+              title="Save Draft & Exit"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
+              <div className="h-10 w-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
                 <AlertTriangle className="h-5 w-5" />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 font-sans tracking-tight">
-                Exit Practice Session?
-              </h3>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 font-sans tracking-tight">
+                  Save Draft & Exit Exam?
+                </h3>
+                <span className="text-[10px] font-extrabold text-emerald-600 uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                  <Check className="h-3 w-3" /> Draft Progress Saved
+                </span>
+              </div>
             </div>
 
             <p className="text-xs text-gray-600 leading-relaxed font-sans">
-              You are currently inside a secure full-screen IELTS test workspace. Your practice draft has been saved to this browser so you won't lose your progress, but you must submit your answers to obtain a verified band score evaluation scorecard.
+              Your test responses, essay draft, timer state, and notes have been automatically saved to your browser. You can exit safely now and resume your exam whenever you return.
             </p>
 
             <div className="flex flex-col gap-2 pt-2">
               <button
-                onClick={() => setShowExitConfirm(false)}
-                className="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
+                onClick={handleSaveDraftAndExit}
+                className="w-full py-2.5 px-4 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-2 shadow-xs font-sans"
               >
-                Continue Practice Session
+                <Save className="h-4 w-4" />
+                <span>Save Draft & Exit Test</span>
               </button>
               
               <button
                 onClick={() => {
+                  saveDraft();
+                  triggerToast("Draft saved! Resuming test session.");
                   setShowExitConfirm(false);
-                  onCancel();
                 }}
-                className="w-full py-2.5 px-4 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-all cursor-pointer text-center"
+                className="w-full py-2.5 px-4 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-all cursor-pointer text-center font-sans"
               >
-                Exit and Keep Saved Draft
+                Cancel (Resume Test)
               </button>
 
               <button
@@ -1494,7 +1555,7 @@ export default function TestSession({
                   setShowExitConfirm(false);
                   onCancel();
                 }}
-                className="w-full py-2 px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 border border-rose-100"
+                className="w-full py-2 px-4 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-1.5 border border-rose-100 font-sans"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 <span>Discard Progress and Exit</span>

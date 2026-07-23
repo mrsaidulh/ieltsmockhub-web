@@ -123,10 +123,55 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<StudentLead | null>(() => {
     const saved = localStorage.getItem('ielts_student_user');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { }
+      try { 
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.verified) return parsed;
+      } catch (e) { }
     }
     return null;
   });
+
+  // Keep student and admin login sessions alive across browser tabs & window lifecycle until manually logged out or cleared
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'ielts_student_user') {
+        if (!e.newValue) {
+          setCurrentUser(null);
+        } else {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            if (parsed && parsed.verified) setCurrentUser(parsed);
+          } catch (err) {}
+        }
+      }
+      if (e.key === 'ielts_admin_user' || e.key === 'ielts_is_admin') {
+        if (e.key === 'ielts_admin_user' && !e.newValue) {
+          setAdminUser(null);
+        } else if (e.key === 'ielts_admin_user' && e.newValue) {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            if (parsed) setAdminUser(parsed);
+          } catch (err) {}
+        } else if (e.key === 'ielts_is_admin' && e.newValue === 'true') {
+          const savedAdmin = localStorage.getItem('ielts_admin_user');
+          if (savedAdmin) {
+            try { setAdminUser(JSON.parse(savedAdmin)); } catch (err) {}
+          } else {
+            setAdminUser({ username: 'Administrator', role: 'Administrator', displayName: 'Administrator Workspace' });
+          }
+        }
+      }
+      if (e.key === 'ielts_registered_students' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setRegisteredStudents(parsed);
+        } catch (err) {}
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Vocabulary Bank State
   const [vocabularyList, setVocabularyList] = useState<VocabularyWord[]>(() => {
@@ -276,6 +321,13 @@ export default function App() {
     setCompletedTestIds([]);
     setProgress(INITIAL_USER_PROGRESS);
     setProgressData(MOCK_BAND_PROGRESS);
+
+    // Persist analytics reset state and visitor counts in localStorage
+    localStorage.removeItem('ielts_test_attempts');
+    localStorage.removeItem('ielts_completed_tests');
+    localStorage.removeItem('ielts_user_progress');
+    localStorage.setItem('ielts_daily_visitors', '1');
+    localStorage.setItem('ielts_analytics_reset_at', new Date().toISOString());
 
     triggerToast('User statistics and analytics reset successfully. Registered user accounts preserved.');
   };
@@ -617,6 +669,7 @@ export default function App() {
             onAddVocabularyWord={handleAddVocabularyWord}
             currentUser={currentUser}
             onVerifyUser={handleVerifyUser}
+            onOpenAuth={() => setShowAuthModal(true)}
           />
         )}
       </AnimatePresence>
@@ -626,12 +679,6 @@ export default function App() {
         {showAdminAuth && (
           <div 
             className="fixed inset-0 z-50 overflow-y-auto bg-gray-950/40 backdrop-blur-sm"
-            onClick={() => {
-              setShowAdminAuth(false);
-              setAdminAuthError(null);
-              setAdminUsernameInput('');
-              setAdminPasswordInput('');
-            }}
           >
             <div className="flex min-h-full items-center justify-center p-4">
               <motion.div

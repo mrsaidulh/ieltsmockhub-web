@@ -19,6 +19,7 @@ interface TestStartModalProps {
   onAddVocabularyWord?: (wordData: { word: string; definition: string; exampleSentence?: string; sourceTestId?: string; sourceTestTitle?: string }) => void;
   currentUser: StudentLead | null;
   onVerifyUser: (lead: StudentLead) => void;
+  onOpenAuth?: () => void;
 }
 
 export default function TestStartModal({
@@ -28,6 +29,7 @@ export default function TestStartModal({
   onAddVocabularyWord,
   currentUser,
   onVerifyUser,
+  onOpenAuth,
 }: TestStartModalProps) {
   // Mode Selection States
   const [selectedMode, setSelectedMode] = useState<'Practice' | 'Exam'>('Practice');
@@ -46,6 +48,7 @@ export default function TestStartModal({
 
   // Bangladeshi OTP Lead Verification States
   const [isVerifying, setIsVerifying] = useState(false);
+  const [verifyReason, setVerifyReason] = useState<'start' | 'submit'>('start');
   const [leadName, setLeadName] = useState('');
   const [leadEmail, setLeadEmail] = useState('');
   const [leadPhone, setLeadPhone] = useState('');
@@ -146,8 +149,26 @@ export default function TestStartModal({
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Begin simulator
+  // Auto-start simulation if user becomes verified while waiting on pre-start verification
+  useEffect(() => {
+    if (currentUser && currentUser.verified && isVerifying && verifyReason === 'start') {
+      setIsVerifying(false);
+      setIsSimulating(true);
+      setUserAnswers({});
+      setWritingEssay('');
+      setHasSubmitted(false);
+      setSimulatedScore(null);
+    }
+  }, [currentUser, isVerifying, verifyReason]);
+
+  // Begin simulator (requires logged in/verified user to persist draft progress)
   const handleStartSimulation = () => {
+    if (!currentUser || !currentUser.verified) {
+      setVerifyReason('start');
+      setIsVerifying(true);
+      return;
+    }
+
     setIsSimulating(true);
     setUserAnswers({});
     setWritingEssay('');
@@ -163,6 +184,7 @@ export default function TestStartModal({
       calculateAndShowResults();
     } else {
       // Open Bangladeshi student verification form
+      setVerifyReason('submit');
       setIsVerifying(true);
     }
   };
@@ -172,6 +194,7 @@ export default function TestStartModal({
     if (currentUser && currentUser.verified) {
       calculateAndShowResults();
     } else {
+      setVerifyReason('submit');
       setIsVerifying(true);
     }
   };
@@ -209,7 +232,7 @@ export default function TestStartModal({
     }, 1500);
   };
 
-  // Confirm OTP Verification and Unlock Score
+  // Confirm OTP Verification and proceed
   const handleConfirmOtp = () => {
     if (enteredOtp !== otpCode) {
       setOtpError('Invalid OTP code. Please enter the correct 4-digit code sent to your phone.');
@@ -227,7 +250,15 @@ export default function TestStartModal({
     });
 
     setIsVerifying(false);
-    calculateAndShowResults();
+    if (verifyReason === 'start') {
+      setIsSimulating(true);
+      setUserAnswers({});
+      setWritingEssay('');
+      setHasSubmitted(false);
+      setSimulatedScore(null);
+    } else {
+      calculateAndShowResults();
+    }
   };
 
   // Compute realistic scores based on candidates performance
@@ -633,9 +664,14 @@ export default function TestStartModal({
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-600">
                 <Lock className="h-6 w-6 animate-pulse" />
               </div>
-              <h3 className="text-base font-bold text-gray-900">Unlock Scored Band Result</h3>
+              <h3 className="text-base font-bold text-gray-900">
+                {verifyReason === 'start' ? 'Student Registration / Login Required' : 'Unlock Scored Band Result'}
+              </h3>
               <p className="text-xs text-gray-500 max-w-sm mx-auto leading-relaxed">
-                To fulfill security lead-generation and verify student progress at <span className="font-semibold text-rose-600">IELTSmockhub.com</span>, please register your contact details.
+                {verifyReason === 'start' 
+                  ? 'Our system automatically saves and restores your exam draft answers, essay notes, and time left. Please log in or register your details so your drafts remain safely tied to your student account.'
+                  : 'To fulfill security lead-generation and verify student progress at IELTSmockhub.com, please register your contact details.'
+                }
               </p>
             </div>
 
@@ -753,12 +789,29 @@ export default function TestStartModal({
                 <button
                   type="button"
                   onClick={handleConfirmOtp}
-                  className="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl text-xs transition-all shadow-lg shadow-rose-100"
+                  className="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-2xl text-xs transition-all shadow-lg shadow-rose-100 flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  Verify Code & Access Band Scores
+                  <Check className="h-4 w-4" />
+                  <span>{verifyReason === 'start' ? 'Verify Code & Launch Assessment' : 'Verify Code & Access Band Scores'}</span>
                 </button>
               )}
             </div>
+
+            {onOpenAuth && (
+              <div className="pt-3 text-center border-t border-gray-100">
+                <span className="text-[11px] text-gray-500">Already have an account? </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenAuth();
+                  }}
+                  className="text-[11px] font-bold text-rose-600 hover:underline cursor-pointer"
+                >
+                  Log In to Student Portal
+                </button>
+              </div>
+            )}
 
             <button
               onClick={() => {
@@ -766,7 +819,7 @@ export default function TestStartModal({
               }}
               className="w-full text-center text-[10px] font-bold text-gray-400 hover:text-gray-500 mt-2 block cursor-pointer"
             >
-              Quit Exam & Discard Temporary Results
+              Cancel & Return
             </button>
           </div>
         )}
