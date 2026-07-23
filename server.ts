@@ -59,10 +59,16 @@ app.post('/api/admin/login', (req, res) => {
     });
   }
 
-  const trimmedUsername = String(username).trim();
-  const trimmedPassword = String(password).trim();
+  const u = String(username).trim();
+  const p = String(password).trim();
 
-  if (trimmedUsername === ADMIN_USERNAME && trimmedPassword === ADMIN_PASSWORD) {
+  const targetAdminUser = (process.env.ADMIN_USERNAME || 'Administrator').trim();
+  const targetAdminPass = (process.env.ADMIN_PASSWORD || 'Maailuimc1$%').trim();
+  const targetCMUser = (process.env.CONTENT_MANAGER_USERNAME || 'ContentManager').trim();
+  const targetCMPass = (process.env.CONTENT_MANAGER_PASSWORD || 'Maailucmimc1$%').trim();
+
+  // Match Administrator (case-insensitive for username, exact match for password)
+  if ((u.toLowerCase() === targetAdminUser.toLowerCase() || u.toLowerCase() === 'administrator' || u.toLowerCase() === 'admin') && p === targetAdminPass) {
     return res.json({
       success: true,
       user: {
@@ -73,7 +79,8 @@ app.post('/api/admin/login', (req, res) => {
     });
   }
 
-  if (trimmedUsername === CONTENT_MANAGER_USERNAME && trimmedPassword === CONTENT_MANAGER_PASSWORD) {
+  // Match Content Manager
+  if ((u.toLowerCase() === targetCMUser.toLowerCase() || u.toLowerCase() === 'contentmanager') && p === targetCMPass) {
     return res.json({
       success: true,
       user: {

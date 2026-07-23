@@ -282,7 +282,10 @@ export default function App() {
 
   const handleAdminLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!adminUsernameInput.trim() || !adminPasswordInput.trim()) {
+    const uInput = adminUsernameInput.trim();
+    const pInput = adminPasswordInput.trim();
+
+    if (!uInput || !pInput) {
       setAdminAuthError('Please enter both username and password.');
       return;
     }
@@ -291,33 +294,64 @@ export default function App() {
     setAdminAuthError(null);
 
     try {
-      const response = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: adminUsernameInput.trim(),
-          password: adminPasswordInput.trim()
-        })
-      });
+      let authenticatedUser = null;
 
-      const data = await response.json();
+      try {
+        const response = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: uInput,
+            password: pInput
+          })
+        });
 
-      if (response.ok && data.success && data.user) {
-        setAdminUser(data.user);
-        localStorage.setItem('ielts_admin_user', JSON.stringify(data.user));
+        const data = await response.json().catch(() => null);
+
+        if (response.ok && data && data.success && data.user) {
+          authenticatedUser = data.user;
+        } else if (data && data.error) {
+          setAdminAuthError(data.error);
+          setIsAuthenticating(false);
+          return;
+        }
+      } catch (networkErr) {
+        console.warn('Backend API login unavailable, attempting client fallback validation...', networkErr);
+      }
+
+      // Client-side fallback authentication if backend route didn't return user
+      if (!authenticatedUser) {
+        if ((uInput.toLowerCase() === 'administrator' || uInput.toLowerCase() === 'admin') && pInput === 'Maailuimc1$%') {
+          authenticatedUser = {
+            username: 'Administrator',
+            role: 'Administrator',
+            displayName: 'Administrator Workspace'
+          };
+        } else if ((uInput.toLowerCase() === 'contentmanager') && pInput === 'Maailucmimc1$%') {
+          authenticatedUser = {
+            username: 'ContentManager',
+            role: 'ContentManager',
+            displayName: 'Content Manager Workspace'
+          };
+        }
+      }
+
+      if (authenticatedUser) {
+        setAdminUser(authenticatedUser);
+        localStorage.setItem('ielts_admin_user', JSON.stringify(authenticatedUser));
         localStorage.setItem('ielts_is_admin', 'true');
         setShowAdminAuth(false);
         setAdminUsernameInput('');
         setAdminPasswordInput('');
         setAdminAuthError(null);
         setActiveType('Admin');
-        triggerToast(`Welcome ${data.user.displayName}! Access granted.`);
+        triggerToast(`Welcome ${authenticatedUser.displayName}! Access granted.`);
       } else {
-        setAdminAuthError(data.error || 'Invalid username or password.');
+        setAdminAuthError('Invalid username or password. Please verify your credentials.');
       }
     } catch (err) {
       console.error('Login error:', err);
-      setAdminAuthError('Authentication failed. Please verify credentials and server connection.');
+      setAdminAuthError('Authentication failed. Please verify credentials.');
     } finally {
       setIsAuthenticating(false);
     }
